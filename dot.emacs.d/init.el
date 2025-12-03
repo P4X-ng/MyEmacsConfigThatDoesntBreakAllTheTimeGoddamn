@@ -64,18 +64,14 @@
 (use-package lsp-pyright :after lsp-mode
   :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
 
-;; --- Projects & Git ---
-;; (use-package projectile :init (projectile-mode 1)
-;;  :bind-keymap ("C-c p" . projectile-command-map)
-;;  :config (setq projectile-project-search-path '("~/Projects" "~")))
+;; --- Git ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
-;; --- Treemacs ---
+;; --- Treemacs (Simple File Browser) ---
 (use-package treemacs
   :defer t
   :bind (("<f8>" . treemacs))
   :config (setq treemacs-width 30))
-(use-package treemacs-projectile :after (treemacs projectile))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -101,49 +97,6 @@
                    (getenv "OPENAI_API_KEY")))
       (ignore-errors (gptel)))))
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
-
-;; --- Clean dead project entries (built-in project.el + projectile, if present) ---
-(defun my/prune-dead-projects ()
-  "Drop projects that no longer exist so startup is quiet."
-  (require 'seq)
-  (when (featurep 'project)
-    (when (boundp 'project--list)
-      (setq project--list
-            (seq-filter (lambda (proj)
-                          (let ((dir (car proj)))
-                            (and dir (file-directory-p dir))))
-                        project--list))
-      (when (fboundp 'project--write-project-list)
-        (project--write-project-list))))
-  (when (featurep 'projectile)
-    (when (boundp 'projectile-known-projects)
-      (setq projectile-known-projects
-            (seq-filter #'file-directory-p projectile-known-projects))
-      (when (fboundp 'projectile-save-known-projects)
-        (projectile-save-known-projects)))))
-(add-hook 'emacs-startup-hook #'my/prune-dead-projects)
-
-(defun my/cleanup-treemacs-persist ()
-  "Nuke treemacs cache if it points at missing paths."
-  (let ((persist (expand-file-name ".cache/treemacs-persist" user-emacs-directory)))
-    (when (file-exists-p persist)
-      (with-temp-buffer
-        (insert-file-contents persist)
-        (goto-char (point-min))
-        (let (bad)
-          (while (re-search-forward "- path :: \\(.*\\)" nil t)
-            (let* ((raw (match-string 1))
-                   (path (string-trim (substitute-in-file-name raw))))
-              (unless (file-directory-p path)
-                (setq bad t))))
-          (when bad
-            (ignore-errors
-              (delete-file persist)
-              (let ((bak (concat persist "~")))
-                (when (file-exists-p bak) (delete-file bak)))))))))
-  (when (fboundp 'treemacs)
-    (ignore-errors (treemacs))))
-(add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
 
@@ -221,8 +174,7 @@
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Projects & Git:\n")
-    (princ "  C-c p .......... Projectile prefix\n")
+    (princ "Git:\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c g .......... Open GPTel chat\n")
