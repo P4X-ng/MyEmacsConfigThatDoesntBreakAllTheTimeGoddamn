@@ -1,0 +1,43 @@
+{
+  "completion": {
+    "enabled": true,
+    "include_params": true,
+    "include_class_objects": true,
+    "include_function_objects": true,
+    "fuzzy": true
+  },
+  "diagnostics": {
+    "enabled": true,
+    "did_open": true,
+    "did_save": true,
+    "did_change": true
+  },
+  "hover": {
+    "enabled": true,
+    "disable_keyword_all": false
+  },
+  "references": {
+    "enabled": true
+  },
+  "signature_help": {
+    "enabled": true
+  },
+  "symbols": {
+    "enabled": true,
+    "all_scopes": true,
+    "include_import_symbols": true
+  },
+  "workspace": {
+    "extra_paths": [],
+    "environment_path": null,
+    "symbols": {
+      "max_symbols": 1000,
+      "ignore_folders": [".git", "__pycache__", ".pytest_cache", "node_modules"]
+    }
+  },
+  "jedi": {
+    "auto_import_modules": ["numpy", "pandas", "matplotlib", "requests", "flask", "django"],
+    "case_insensitive_completion": true,
+    "debug": false
+  }
+}

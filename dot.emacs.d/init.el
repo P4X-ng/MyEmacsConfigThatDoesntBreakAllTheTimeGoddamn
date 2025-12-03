@@ -49,20 +49,95 @@
 
 ;; --- Syntax checking + LSP ---
 (use-package flycheck :init (global-flycheck-mode 1))
+
+;; --- Reliable Jedi Integration ---
+(defun my/find-jedi-language-server ()
+  "Find Jedi language server in current venv or system."
+  (or (executable-find "jedi-language-server")
+      (when pyvenv-virtual-env
+        (let ((jedi-path (expand-file-name "bin/jedi-language-server" pyvenv-virtual-env)))
+          (when (file-executable-p jedi-path) jedi-path)))
+      (let ((local-jedi (expand-file-name "jedi/bin/jedi-wrapper.py" 
+                                         (or pyvenv-virtual-env default-directory))))
+        (when (file-executable-p local-jedi) local-jedi))))
+
+(defun my/find-pylsp-server ()
+  "Find Python LSP server in current venv or system."
+  (or (executable-find "pylsp")
+      (when pyvenv-virtual-env
+        (let ((pylsp-path (expand-file-name "bin/pylsp" pyvenv-virtual-env)))
+          (when (file-executable-p pylsp-path) pylsp-path)))
+      (let ((local-pylsp (expand-file-name "jedi/bin/pylsp-wrapper.py" 
+                                          (or pyvenv-virtual-env default-directory))))
+        (when (file-executable-p local-pylsp) local-pylsp))))
+
 (use-package lsp-mode
   :init (setq lsp-keymap-prefix "C-c l"
               lsp-enable-snippet t
               lsp-idle-delay 0.3
-              lsp-warn-no-matched-clients nil)
-  :hook ((python-mode . (lambda () (when (executable-find "pyright") (lsp))))
+              lsp-warn-no-matched-clients nil
+              lsp-pylsp-server-command nil)  ; Will be set dynamically
+  :hook ((python-mode . my/setup-python-lsp)
          (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
   :commands lsp)
+
+(defun my/setup-python-lsp ()
+  "Setup Python LSP with Jedi or fallback to pyright."
+  (let ((jedi-server (my/find-jedi-language-server))
+        (pylsp-server (my/find-pylsp-server)))
+    (cond
+     ;; Prefer Jedi Language Server
+     (jedi-server
+      (message "[LSP] Using Jedi Language Server: %s" jedi-server)
+      (setq-local lsp-jedi-language-server-command jedi-server)
+      (require 'lsp-jedi nil t)
+      (lsp))
+     ;; Fallback to Python LSP Server with Jedi
+     (pylsp-server
+      (message "[LSP] Using Python LSP Server: %s" pylsp-server)
+      (setq-local lsp-pylsp-server-command pylsp-server)
+      (require 'lsp-pylsp nil t)
+      (lsp))
+     ;; Final fallback to pyright
+     ((executable-find "pyright")
+      (message "[LSP] Using Pyright fallback")
+      (require 'lsp-pyright nil t)
+      (lsp))
+     (t
+      (message "[LSP] No Python language server found. Install Jedi with: ./scripts/deploy-jedi.sh")))))
+
+;; --- Jedi Language Server Configuration ---
+(use-package lsp-jedi
+  :straight (:host github :repo "fredcamps/lsp-jedi")
+  :after lsp-mode
+  :config
+  (setq lsp-jedi-completion-enabled t
+        lsp-jedi-completion-include-params t
+        lsp-jedi-diagnostics-enabled t
+        lsp-jedi-hover-enabled t
+        lsp-jedi-references-enabled t
+        lsp-jedi-signature-help-enabled t
+        lsp-jedi-symbols-enabled t))
+
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
-(use-package lsp-pyright :after lsp-mode
-  :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
+
+;; --- Jedi Health Check Command ---
+(defun my/jedi-health-check ()
+  "Run Jedi health check for current venv."
+  (interactive)
+  (let ((health-check (or (executable-find "jedi-health-check")
+                         (when pyvenv-virtual-env
+                           (expand-file-name "bin/jedi-health-check" pyvenv-virtual-env))
+                         (expand-file-name "jedi/bin/health-check.py" 
+                                          (or pyvenv-virtual-env default-directory)))))
+    (if (and health-check (file-executable-p health-check))
+        (async-shell-command health-check "*Jedi Health Check*")
+      (message "Jedi health check not found. Deploy Jedi first: ./scripts/deploy-jedi.sh"))))
+
+(global-set-key (kbd "C-c j h") #'my/jedi-health-check)
 
 ;; --- Projects & Git ---
 ;; (use-package projectile :init (projectile-mode 1)
@@ -235,6 +310,9 @@
     (princ "  C-c v a ........ Activate\n")
     (princ "  C-c v d ........ Deactivate\n")
     (princ "  C-c v s ........ Show active venv\n\n")
+    (princ "Jedi Integration:\n")
+    (princ "  C-c j h ........ Run Jedi health check\n")
+    (princ "  C-c l .......... LSP prefix (go-to-def, references, etc.)\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)

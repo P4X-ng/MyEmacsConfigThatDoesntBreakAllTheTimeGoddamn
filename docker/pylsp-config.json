@@ -1,0 +1,81 @@
+{
+  "pylsp": {
+    "configurationSources": ["pycodestyle"],
+    "plugins": {
+      "jedi_completion": {
+        "enabled": true,
+        "include_params": true,
+        "include_class_objects": true,
+        "include_function_objects": true,
+        "fuzzy": true,
+        "eager": false,
+        "resolve_at_most": 25,
+        "cache_for": ["pandas", "numpy", "tensorflow", "matplotlib"]
+      },
+      "jedi_definition": {
+        "enabled": true,
+        "follow_imports": true,
+        "follow_builtin_imports": true
+      },
+      "jedi_hover": {
+        "enabled": true
+      },
+      "jedi_references": {
+        "enabled": true
+      },
+      "jedi_signature_help": {
+        "enabled": true
+      },
+      "jedi_symbols": {
+        "enabled": true,
+        "all_scopes": true,
+        "include_import_symbols": true
+      },
+      "mccabe": {
+        "enabled": true,
+        "threshold": 15
+      },
+      "preload": {
+        "enabled": true,
+        "modules": ["numpy", "pandas", "matplotlib", "requests"]
+      },
+      "pycodestyle": {
+        "enabled": true,
+        "exclude": ["E501", "W503"],
+        "maxLineLength": 88
+      },
+      "pydocstyle": {
+        "enabled": false
+      },
+      "pyflakes": {
+        "enabled": true
+      },
+      "pylint": {
+        "enabled": false
+      },
+      "rope_completion": {
+        "enabled": true,
+        "eager": false
+      },
+      "rope_rename": {
+        "enabled": true
+      },
+      "yapf": {
+        "enabled": false
+      },
+      "autopep8": {
+        "enabled": true
+      },
+      "black": {
+        "enabled": true,
+        "line_length": 88,
+        "cache_config": true
+      },
+      "mypy": {
+        "enabled": true,
+        "live_mode": false,
+        "strict": false
+      }
+    }
+  }
+}
