@@ -1,0 +1,1 @@
+/home/punk/.emacs.d/straight/repos/corfu/corfu.el
