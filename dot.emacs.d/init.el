@@ -70,6 +70,15 @@
 ;;  :config (setq projectile-project-search-path '("~/Projects" "~")))
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
+;; --- Vterm (real terminal emulator) ---
+(use-package vterm
+  :commands vterm
+  :bind (("C-c t" . vterm)
+         ("C-c T" . vterm-other-window))
+  :config
+  (setq vterm-max-scrollback 10000)
+  (setq vterm-kill-buffer-on-exit t))
+
 ;; --- Treemacs ---
 (use-package treemacs
   :defer t
@@ -221,6 +230,9 @@
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
+    (princ "Terminal:\n")
+    (princ "  C-c t .......... Open vterm (real terminal)\n")
+    (princ "  C-c T .......... Open vterm in other window\n\n")
     (princ "Projects & Git:\n")
     (princ "  C-c p .......... Projectile prefix\n")
     (princ "  C-x g .......... Magit status\n\n")
