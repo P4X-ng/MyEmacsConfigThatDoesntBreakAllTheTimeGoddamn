@@ -1,0 +1,6 @@
+# Ignore Docker build artifacts
+.docker
+
+# Ignore any local test files
+*.test
+*.log

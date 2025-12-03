@@ -1,0 +1,36 @@
+services:
+  jedi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jedi-language-server:latest
+    container_name: jedi-lsp
+    volumes:
+      # Export the jedi venv to host for use outside the container
+      - jedi-venv:/jedi-venv:ro
+      # Mount the host venv directory to copy jedi into it
+      - ${VENV_HOME:-~/.venv}:/host-venv
+    stdin_open: true
+    tty: true
+    # The language server runs via stdio, so we need interactive mode
+    command: ["/jedi-venv/bin/jedi-language-server"]
+
+  # Service to copy jedi venv to host venv path
+  install-jedi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jedi-language-server:latest
+    volumes:
+      - ${VENV_HOME:-~/.venv}:/host-venv
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "Installing jedi venv to /host-venv/jedi..."
+        rm -rf /host-venv/jedi
+        cp -r /jedi-venv /host-venv/jedi
+        echo "✅ Jedi venv installed to ~/.venv/jedi"
+        echo "   Executable: ~/.venv/jedi/bin/jedi-language-server"
+
+volumes:
+  jedi-venv:
