@@ -10,7 +10,7 @@
 #   VENV_HOME=/path ./setup-jedi.sh  # Install to custom venv home
 #
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_HOME="${VENV_HOME:-$HOME/.venv}"
@@ -88,7 +88,9 @@ if [ -x "$JEDI_VENV/bin/jedi-language-server" ]; then
     echo "  $JEDI_VENV/bin/jedi-language-server"
     echo ""
     echo "Version:"
-    "$JEDI_VENV/bin/jedi-language-server" --version 2>&1 || echo "  (run to see version)"
+    if ! "$JEDI_VENV/bin/jedi-language-server" --version 2>&1; then
+        echo "  (version check failed - server may still work)"
+    fi
     echo ""
     echo "To use with Emacs, the init.el has been configured to"
     echo "automatically detect and use this jedi installation."
