@@ -75,9 +75,9 @@
 ;; Bookmarks - simple, persistent file shortcuts
 ;; Use C-x r m to set a bookmark, C-x r b to jump to one
 ;; Or use the custom keybindings below
-(global-set-key (kbd "C-c b m") 'bookmark-set)
-(global-set-key (kbd "C-c b j") 'bookmark-jump)
-(global-set-key (kbd "C-c b l") 'bookmark-bmenu-list)
+(global-set-key (kbd "C-c b m") #'bookmark-set)
+(global-set-key (kbd "C-c b j") #'bookmark-jump)
+(global-set-key (kbd "C-c b l") #'bookmark-bmenu-list)
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
