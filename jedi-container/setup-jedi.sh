@@ -41,6 +41,7 @@ echo "Using: $CONTAINER_CMD"
 echo ""
 
 # Check for docker-compose or podman-compose
+USE_DIRECT_BUILD=""
 if command -v docker-compose &> /dev/null; then
     COMPOSE_CMD="docker-compose"
 elif command -v docker &> /dev/null && docker compose version &> /dev/null; then
