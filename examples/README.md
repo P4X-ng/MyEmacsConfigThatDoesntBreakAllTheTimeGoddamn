@@ -12,8 +12,8 @@ This directory contains example files to test and demonstrate the autocompletion
 ## How to Use
 
 1. Make sure you've installed the language servers as described in `AUTOCOMPLETE_SETUP.md`:
-   - C/C++: `sudo apt install -y clangd`
-   - Bash: `sudo npm install -g bash-language-server`
+  - C/C++: `sudo apt install -y clangd`
+  - Bash: `sudo npm install -g bash-language-server`
 
 2. Open any of these demo files in Emacs:
    ```bash

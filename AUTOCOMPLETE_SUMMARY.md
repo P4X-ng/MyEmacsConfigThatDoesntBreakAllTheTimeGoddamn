@@ -114,36 +114,36 @@ bash-language-server --version
 ## Testing Your Setup
 
 1. Open one of the demo files:
-   ```bash
-   emacs examples/demo_c.c
-   ```
+  ```bash
+  emacs examples/demo_c.c
+  ```
 
 2. Try typing partial identifiers:
-   - In C: `prin` or `str`
-   - In Bash: `ech` or variable names
+  - In C: `prin` or `str`
+  - In Bash: `ech` or variable names
 
 3. Watch for:
-   - Completion popup appearing after 2 characters
-   - Documentation popup after 0.5 seconds
-   - Icons showing completion types
+  - Completion popup appearing after 2 characters
+  - Documentation popup after 0.5 seconds
+  - Icons showing completion types
 
 ## Troubleshooting
 
 If completions don't appear:
 
 1. **Check language server installation:**
-   ```bash
-   which clangd     # For C/C++
-   which bash-language-server  # For Bash
-   ```
+  ```bash
+  which clangd     # For C/C++
+  which bash-language-server  # For Bash
+  ```
 
 2. **Check LSP started in Emacs:**
-   - Look at mode line for LSP indicators
-   - Try `M-x lsp` to manually start
+  - Look at mode line for LSP indicators
+  - Try `M-x lsp` to manually start
 
 3. **Check Messages buffer:**
-   - Press `M-x messages` to see error logs
-   - Look for LSP startup messages
+  - Press `M-x messages` to see error logs
+  - Look for LSP startup messages
 
 See `AUTOCOMPLETE_SETUP.md` for detailed troubleshooting.
 

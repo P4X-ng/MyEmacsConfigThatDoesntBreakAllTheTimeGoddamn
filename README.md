@@ -15,7 +15,7 @@ A modern, terminal-friendly Emacs IDE configuration with comprehensive autocompl
 - **C/C++**: clangd language server with full IDE features
 - **Bash**: bash-language-server for shell scripts
 - **Python**: Jedi (handled separately in containerized environment)
-- **Auto-formatting**: Supports clang-format (C/C++), shfmt (Bash), black (Python)
+- **Auto-formatting**: Supports clang-format (C/C++), shfmt (Bash)
 
 ### 🛠️ Development Tools
 - **Syntax Checking**: Real-time with Flycheck
