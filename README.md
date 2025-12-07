@@ -14,8 +14,8 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 ### File Navigation & Exploration
 - **Treemacs**: A sidebar file explorer (press `F8` to toggle) - just like VSCode's Explorer
 - **Vertico + Marginalia**: Enhanced minibuffer completion for better file/buffer selection
-- **Quick File Open**: `C-p` to quickly open files (like `Ctrl+P` in VSCode)
-- **Buffer Switching**: `C-b` to switch between open files (like `Ctrl+Tab`)
+- **Quick File Open**: `C-c C-p` to quickly open files (VSCode-inspired)
+- **Buffer Switching**: `C-x C-b` to switch between open files (enhanced standard binding)
 
 ### Code Intelligence
 - **LSP Mode**: Language Server Protocol support for:
@@ -34,7 +34,6 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 - **Smartparens**: Auto-pairing brackets and quotes
 - **Comment Toggle**: `C-/` to comment/uncomment lines
 - **Line Movement**: `M-↑` / `M-↓` to move lines up/down
-- **Delete Line**: `C-d` or `C-S-k` to delete entire line
 - **Undo Tree**: Better undo/redo system
 
 ### Navigation & Discovery
