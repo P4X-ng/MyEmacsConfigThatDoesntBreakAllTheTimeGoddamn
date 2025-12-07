@@ -42,12 +42,8 @@ This document summarizes the autocompletion enhancements added to the Emacs conf
 
 ### Language Server Support
 
-The configuration uses modern LSP servers (NOT Jedi):
+The configuration uses modern LSP servers for C/C++ and Bash:
 
-- **Python**: pyright
-  - Install: `sudo npm install -g pyright`
-  - Features: Type checking, better inference, faster
-  
 - **C/C++**: clangd
   - Install: `sudo apt install -y clangd`
   - Features: Full IDE features for C/C++
@@ -56,17 +52,18 @@ The configuration uses modern LSP servers (NOT Jedi):
   - Install: `sudo npm install -g bash-language-server`
   - Features: Shell script completions and validation
 
+**Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
+
 ## What You Get
 
-When you open a Python, C, or Bash file:
+When you open a C or Bash file:
 
 1. **Automatic completions** appear as you type (after 2 characters)
 2. **Documentation** shows next to each completion option
 3. **Type information** for variables and return values
 4. **Function signatures** with parameter hints
-5. **Import suggestions** (Python)
-6. **Member access completions** (e.g., `object.method`)
-7. **Snippet expansions** where supported
+5. **Member access completions** (e.g., `struct.member`)
+6. **Snippet expansions** where supported
 
 ## Key Bindings
 
@@ -87,7 +84,6 @@ When you open a Python, C, or Bash file:
 
 ### New Files
 - `AUTOCOMPLETE_SETUP.md` - Comprehensive setup guide for Ubuntu 24.04
-- `examples/demo_python.py` - Python demo with completion examples
 - `examples/demo_c.c` - C demo with completion examples
 - `examples/demo_bash.sh` - Bash demo with completion examples
 - `examples/README.md` - Guide for using the demo files
@@ -107,12 +103,10 @@ sudo apt update
 sudo apt install -y nodejs npm
 
 # Install language servers
-sudo npm install -g pyright
 sudo apt install -y clangd
 sudo npm install -g bash-language-server
 
 # Verify installations
-pyright --version
 clangd --version
 bash-language-server --version
 ```
@@ -121,11 +115,10 @@ bash-language-server --version
 
 1. Open one of the demo files:
    ```bash
-   emacs examples/demo_python.py
+   emacs examples/demo_c.c
    ```
 
 2. Try typing partial identifiers:
-   - In Python: `os.` or `import s`
    - In C: `prin` or `str`
    - In Bash: `ech` or variable names
 
@@ -140,7 +133,6 @@ If completions don't appear:
 
 1. **Check language server installation:**
    ```bash
-   which pyright    # For Python
    which clangd     # For C/C++
    which bash-language-server  # For Bash
    ```
@@ -154,18 +146,6 @@ If completions don't appear:
    - Look for LSP startup messages
 
 See `AUTOCOMPLETE_SETUP.md` for detailed troubleshooting.
-
-## Why Not Jedi?
-
-The configuration uses **pyright** instead of Jedi because:
-
-- ✅ **Faster**: TypeScript-based, runs via Node.js
-- ✅ **More accurate**: Better type inference and checking
-- ✅ **Better maintained**: Active development by Microsoft
-- ✅ **Standards-based**: Uses LSP, works with any editor
-- ✅ **Modern**: Supports latest Python features
-
-Jedi is older technology that's slower and less accurate for modern Python development.
 
 ## Performance Notes
 
@@ -183,7 +163,6 @@ These values can be adjusted in `init.el` if you want faster/slower behavior:
 
 - [Corfu Documentation](https://github.com/minad/corfu)
 - [LSP-mode Documentation](https://emacs-lsp.github.io/lsp-mode/)
-- [Pyright Documentation](https://github.com/microsoft/pyright)
 - [Clangd Documentation](https://clangd.llvm.org/)
 - Main setup guide: `AUTOCOMPLETE_SETUP.md`
 - Demo files: `examples/` directory
@@ -196,4 +175,4 @@ If you encounter issues:
 2. Verify language servers are installed and in PATH
 3. Check Emacs `*Messages*` buffer for errors
 4. Try demo files in `examples/` directory
-5. Ensure file extensions are correct (`.py`, `.c`, `.sh`)
+5. Ensure file extensions are correct (`.c`, `.sh`)

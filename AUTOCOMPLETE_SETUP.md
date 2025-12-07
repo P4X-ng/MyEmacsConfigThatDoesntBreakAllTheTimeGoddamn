@@ -1,10 +1,12 @@
 # Autocomplete Setup Guide (Ubuntu 24.04)
 
-This Emacs configuration provides intelligent autocompletions for C, C++, Python, and Bash through the Language Server Protocol (LSP). **We do NOT use Jedi** - instead, we use modern language servers.
+This Emacs configuration provides intelligent autocompletions for C, C++, and Bash through the Language Server Protocol (LSP). 
+
+**Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
 
 ## Quick Start
 
-The configuration is already set up! You just need to install the language servers for the languages you work with.
+The configuration is already set up! You just need to install the language servers for C/C++ and Bash.
 
 ### Prerequisites
 
@@ -12,23 +14,11 @@ The configuration is already set up! You just need to install the language serve
 # Update package lists
 sudo apt update
 
-# Install Node.js and npm (required for some language servers)
+# Install Node.js and npm (required for bash-language-server)
 sudo apt install -y nodejs npm
 ```
 
 ## Language Server Installation
-
-### Python (Pyright)
-
-Pyright is a modern, fast Python language server (better than Jedi).
-
-```bash
-# Install pyright globally
-sudo npm install -g pyright
-
-# Verify installation
-pyright --version
-```
 
 ### C/C++ (clangd)
 
@@ -86,32 +76,16 @@ The configuration uses several packages working together:
 
 ### What You Get
 
-When you open a Python, C, or Bash file, you'll automatically get:
+When you open a C or Bash file, you'll automatically get:
 
 - **Smart autocompletions** as you type
 - **Function signatures** and parameter hints
 - **Documentation popups** for functions/methods
 - **Type information** for variables and returns
-- **Import suggestions** (Python)
-- **Member access** completions (e.g., `object.`)
+- **Member access** completions (e.g., `struct.member`)
 - **Code snippets** (if supported by the language server)
 
 ## Testing Your Setup
-
-### Test Python Completion
-
-1. Create a test file: `test.py`
-2. Type the following and watch completions appear:
-
-```python
-import os
-
-# Type 'os.' and you should see methods like getcwd, listdir, etc.
-os.
-
-# Type 'def my_func' and you'll get snippet completion
-def my_func
-```
 
 ### Test C Completion
 
@@ -143,9 +117,6 @@ int main() {
 
 1. **Check if language server is installed:**
    ```bash
-   # For Python
-   which pyright
-   
    # For C/C++
    which clangd
    
@@ -170,7 +141,7 @@ int main() {
 ### LSP not starting
 
 - Make sure the language server executable is in your PATH
-- Check that your file has the correct extension (`.py`, `.c`, `.h`, `.sh`)
+- Check that your file has the correct extension (`.c`, `.h`, `.sh`)
 - Try manually starting LSP with `M-x lsp`
 
 ## Key Bindings for Completion
@@ -188,19 +159,6 @@ LSP commands (prefix `C-c l`):
 - `C-c l h h` - Show documentation (hover info)
 - `C-c l =` - Format buffer/region
 
-## Python Virtual Environments
-
-The config auto-detects and activates Python virtual environments:
-
-```bash
-# Create a venv in your project
-python3 -m venv .venv
-
-# Open a Python file in that directory - venv auto-activates!
-# Or manually activate with:
-# C-c v a
-```
-
 ## Advanced Configuration
 
 All completion settings are in `init.el` in the "Completion + Orderless" section. You can customize:
@@ -210,17 +168,8 @@ All completion settings are in `init.el` in the "Completion + Orderless" section
 - `corfu-cycle` - Whether to cycle through completions
 - `lsp-completion-provider` - Currently set to `:none` to use corfu
 
-## Why Not Jedi?
-
-Jedi was the old standard for Python completion, but Pyright is:
-- **Faster**: Written in TypeScript, runs via Node.js
-- **More accurate**: Better type inference and type checking
-- **Better maintained**: Active development by Microsoft
-- **Standards-based**: Uses LSP, works with any LSP-compatible editor
-
 ## Further Reading
 
 - [Corfu documentation](https://github.com/minad/corfu)
 - [LSP-mode documentation](https://emacs-lsp.github.io/lsp-mode/)
-- [Pyright documentation](https://github.com/microsoft/pyright)
 - [Clangd documentation](https://clangd.llvm.org/)

@@ -2,23 +2,21 @@
 
 This directory contains example files to test and demonstrate the autocompletion features in the Emacs configuration.
 
+**Note**: Python autocompletion is handled separately via Jedi in a containerized environment, so no Python demo is included here.
+
 ## Files
 
-- **demo_python.py** - Python example showing type hints, imports, and function completions
 - **demo_c.c** - C example showing standard library, struct members, and custom function completions
 - **demo_bash.sh** - Bash script example showing commands, variables, and function completions
 
 ## How to Use
 
 1. Make sure you've installed the language servers as described in `AUTOCOMPLETE_SETUP.md`:
-   - Python: `sudo npm install -g pyright`
    - C/C++: `sudo apt install -y clangd`
    - Bash: `sudo npm install -g bash-language-server`
 
 2. Open any of these demo files in Emacs:
    ```bash
-   emacs examples/demo_python.py
-   # or
    emacs examples/demo_c.c
    # or
    emacs examples/demo_bash.sh
@@ -31,12 +29,6 @@ This directory contains example files to test and demonstrate the autocompletion
    - Documentation should appear next to completions after 0.5s
 
 ## What to Look For
-
-### Python (demo_python.py)
-- Type `os.` - see methods like `getcwd()`, `listdir()`, etc.
-- Type `sys.` - see methods like `exit()`, `argv`, etc.
-- Type `calculate_` - should complete to `calculate_sum`
-- Hover over functions to see their docstrings
 
 ### C (demo_c.c)
 - Type `prin` - should complete to `printf`
@@ -60,7 +52,6 @@ If completions don't appear:
 
 2. Verify language server is installed:
    ```bash
-   which pyright  # for Python
    which clangd   # for C
    which bash-language-server  # for Bash
    ```

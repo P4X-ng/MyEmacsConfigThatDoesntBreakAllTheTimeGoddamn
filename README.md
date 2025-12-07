@@ -12,10 +12,10 @@ A modern, terminal-friendly Emacs IDE configuration with comprehensive autocompl
 - **Multiple Sources**: Code, files, keywords, and dynamic abbreviations
 
 ### 💻 Language Support
-- **Python**: Pyright language server (NOT Jedi - faster and more accurate)
 - **C/C++**: clangd language server with full IDE features
 - **Bash**: bash-language-server for shell scripts
-- **Auto-formatting**: Supports black (Python), clang-format (C/C++), shfmt (Bash)
+- **Python**: Jedi (handled separately in containerized environment)
+- **Auto-formatting**: Supports clang-format (C/C++), shfmt (Bash), black (Python)
 
 ### 🛠️ Development Tools
 - **Syntax Checking**: Real-time with Flycheck
@@ -60,15 +60,14 @@ ln -s $(pwd)/dot.emacs.d ~/.emacs.d
 # Prerequisites
 sudo apt install -y nodejs npm
 
-# Python language server
-sudo npm install -g pyright
-
 # C/C++ language server
 sudo apt install -y clangd
 
 # Bash language server (optional)
 sudo npm install -g bash-language-server
 ```
+
+**Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
 
 ### 5. Launch Emacs
 ```bash
@@ -89,10 +88,11 @@ First launch will install all packages automatically (takes a few minutes).
 Try the demo files to see autocompletion in action:
 
 ```bash
-emacs examples/demo_python.py  # Python examples
 emacs examples/demo_c.c        # C examples
 emacs examples/demo_bash.sh    # Bash examples
 ```
+
+**Note**: Python demo is not included as Python autocompletion is handled separately via Jedi.
 
 Follow the comments in each file for what to type to trigger completions.
 
@@ -160,16 +160,18 @@ Edit `init.el` to customize behavior, add packages, or modify keybindings.
 - ✅ **Stable**: Tested and working configuration
 - ✅ **Well-documented**: Extensive comments and guides
 - ✅ **Terminal-friendly**: Works in both GUI and terminal
-- ✅ **No Jedi**: Uses modern pyright instead of slow Jedi
 - ✅ **Comprehensive**: Full IDE features out of the box
+- ✅ **Python via Jedi**: Python handled separately in containerized environment
 
 ## Troubleshooting
 
 ### No completions appearing?
-1. Check language server is installed: `which pyright` / `which clangd`
+1. Check language server is installed: `which clangd` / `which bash-language-server`
 2. Check LSP started: Look for LSP indicators in mode line
 3. Try manually starting: `M-x lsp`
 4. See [AUTOCOMPLETE_SETUP.md](AUTOCOMPLETE_SETUP.md) for detailed troubleshooting
+
+**Note**: For Python autocompletion issues, check the Jedi containerized setup.
 
 ### Packages not installing?
 1. Check internet connection

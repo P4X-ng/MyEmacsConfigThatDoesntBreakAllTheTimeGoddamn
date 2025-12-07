@@ -91,9 +91,9 @@
 ;; LSP-mode: Language Server Protocol for intelligent code features
 ;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
 ;; SETUP NOTES:
-;; - Python: Install pyright with: npm install -g pyright
 ;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
 ;; - Bash: Install bash-language-server with: npm install -g bash-language-server
+;; Note: Python autocomplete is handled separately (Jedi containerized)
 (use-package lsp-mode
   :init
   (setq lsp-keymap-prefix "C-c l"
@@ -102,8 +102,7 @@
         lsp-warn-no-matched-clients nil
         ;; Improve LSP completion integration with corfu
         lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
-  :hook ((python-mode . (lambda () (when (executable-find "pyright") (lsp))))
-         (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
+  :hook ((bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
@@ -120,10 +119,6 @@
 
 ;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
-
-;; LSP-Pyright: Python language server (modern alternative to Jedi)
-;; Note: The python-mode hook in lsp-mode already starts LSP; this just ensures lsp-pyright is loaded
-(use-package lsp-pyright :after lsp-mode)
 
 ;; --- Projects & Git ---
 ;; (use-package projectile :init (projectile-mode 1)
