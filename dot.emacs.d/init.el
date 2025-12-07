@@ -39,7 +39,44 @@
 (global-set-key (kbd "M-w") 'tab-close)
 
 ;; --- Completion + Orderless ---
-(use-package corfu :init (global-corfu-mode))
+;; Corfu: Modern in-buffer completion popup (auto-shows while typing)
+(use-package corfu
+  :custom
+  (corfu-auto t)                   ; Enable auto completion
+  (corfu-auto-delay 0.2)           ; Show completions after 0.2s
+  (corfu-auto-prefix 2)            ; Trigger after 2 characters
+  (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
+  (corfu-preview-current nil)      ; Don't preview current candidate
+  (corfu-quit-no-match 'separator) ; Quit on no match except after separator
+  :init
+  (global-corfu-mode))
+
+;; Corfu popupinfo: Show documentation popup next to completions
+(use-package corfu-popupinfo
+  :after corfu
+  :hook (corfu-mode . corfu-popupinfo-mode)
+  :custom
+  (corfu-popupinfo-delay '(0.5 . 0.2)) ; Show doc after 0.5s, update after 0.2s
+  :config
+  (corfu-popupinfo-mode))
+
+;; Cape: Completion At Point Extensions - adds extra completion sources
+(use-package cape
+  :init
+  ;; Add useful completion sources
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)  ; Dynamic abbreviations
+  (add-to-list 'completion-at-point-functions #'cape-file)     ; File paths
+  (add-to-list 'completion-at-point-functions #'cape-keyword)) ; Programming language keywords
+
+;; Kind-icon: Add icons to completion candidates showing their type
+(use-package kind-icon
+  :after corfu
+  :custom
+  (kind-icon-default-face 'corfu-default)
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+;; Orderless: Flexible completion matching (space-separated patterns)
 (use-package orderless
   :after corfu
   :custom
@@ -48,19 +85,40 @@
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;; --- Syntax checking + LSP ---
+;; Flycheck: Real-time syntax checking
 (use-package flycheck :init (global-flycheck-mode 1))
+
+;; LSP-mode: Language Server Protocol for intelligent code features
+;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
+;; SETUP NOTES:
+;; - Python: Install pyright with: npm install -g pyright
+;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
+;; - Bash: Install bash-language-server with: npm install -g bash-language-server
 (use-package lsp-mode
-  :init (setq lsp-keymap-prefix "C-c l"
-              lsp-enable-snippet t
-              lsp-idle-delay 0.3
-              lsp-warn-no-matched-clients nil)
+  :init
+  (setq lsp-keymap-prefix "C-c l"
+        lsp-enable-snippet t
+        lsp-idle-delay 0.3
+        lsp-warn-no-matched-clients nil
+        ;; Improve LSP completion integration with corfu
+        lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
   :hook ((python-mode . (lambda () (when (executable-find "pyright") (lsp))))
          (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
   :commands lsp)
+
+;; Configure LSP completion to work seamlessly with corfu
+(defun my/lsp-mode-setup-completion ()
+  (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+        '(orderless)))
+(add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
+
+;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
+
+;; LSP-Pyright: Python language server (modern alternative to Jedi)
 (use-package lsp-pyright :after lsp-mode
   :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
 
