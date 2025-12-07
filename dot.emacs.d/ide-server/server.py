@@ -16,6 +16,11 @@ from typing import Dict, Any, List
 import threading
 from datetime import datetime
 
+# Global shared state with thread safety
+_chat_manager = None
+_context_manager = None
+_state_lock = threading.Lock()
+
 
 class ChatManager:
     """Manages chat conversations and LLM interactions."""
@@ -51,13 +56,21 @@ class ChatManager:
         # Add user message
         self.add_message(conv_id, "user", message)
         
-        # For now, return a simple response
-        # In a full implementation, this would call the actual LLM API
+        # Check for API key and provide clear feedback
         if not self.api_key:
-            response = f"[No API key set. Echo: {message}]"
+            response = (
+                "⚠️  No LLM API key configured. "
+                "Set OPENAI_API_KEY environment variable to enable chat. "
+                f"Your message: {message}"
+            )
         else:
-            # Placeholder for actual LLM call
-            response = f"[LLM Response placeholder for: {message}]"
+            # TODO: Implement actual LLM API call here
+            # This is a placeholder for the actual implementation
+            response = (
+                f"🤖 LLM integration placeholder (backend: {self.backend}, model: {self.model})\n"
+                f"Your message: {message}\n"
+                f"To enable full LLM functionality, implement the API call in server.py"
+            )
         
         # Add assistant response
         self.add_message(conv_id, "assistant", response)
@@ -105,16 +118,74 @@ class ContextManager:
         return self.context_dirs.copy()
     
     def search_context(self, query: str) -> str:
-        """Search context directories for query."""
-        # Placeholder implementation
-        return f"Search results for '{query}' in {len(self.context_dirs)} directories"
+        """Search context directories for query using simple grep."""
+        if not self.context_dirs:
+            return "No context directories configured. Use /context/add to add directories."
+        
+        results = []
+        for directory in self.context_dirs:
+            if not os.path.isdir(directory):
+                continue
+            
+            # Simple file search - walk directory and search files
+            try:
+                for root, dirs, files in os.walk(directory):
+                    # Skip hidden directories
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    
+                    for file in files:
+                        # Skip hidden files and common binary files
+                        if file.startswith('.') or file.endswith(('.pyc', '.so', '.o', '.class')):
+                            continue
+                        
+                        filepath = os.path.join(root, file)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                for line_num, line in enumerate(f, 1):
+                                    if query.lower() in line.lower():
+                                        results.append(f"{filepath}:{line_num}: {line.strip()}")
+                                        # Limit results per file
+                                        if len([r for r in results if r.startswith(filepath)]) >= 3:
+                                            break
+                        except (IOError, OSError):
+                            continue
+                        
+                        # Limit total results
+                        if len(results) >= 20:
+                            break
+                    if len(results) >= 20:
+                        break
+            except (IOError, OSError) as e:
+                results.append(f"Error searching {directory}: {e}")
+        
+        if not results:
+            return f"No matches found for '{query}' in {len(self.context_dirs)} context directories."
+        
+        return "\n".join(results[:20])  # Return top 20 results
 
 
 class IDERequestHandler(BaseHTTPRequestHandler):
     """HTTP request handler for IDE server."""
     
-    chat_manager = ChatManager()
-    context_manager = ContextManager()
+    @property
+    def chat_manager(self):
+        """Get shared chat manager instance."""
+        global _chat_manager
+        if _chat_manager is None:
+            with _state_lock:
+                if _chat_manager is None:
+                    _chat_manager = ChatManager()
+        return _chat_manager
+    
+    @property
+    def context_manager(self):
+        """Get shared context manager instance."""
+        global _context_manager
+        if _context_manager is None:
+            with _state_lock:
+                if _context_manager is None:
+                    _context_manager = ContextManager()
+        return _context_manager
     
     def log_message(self, format, *args):
         """Override to provide cleaner logging."""

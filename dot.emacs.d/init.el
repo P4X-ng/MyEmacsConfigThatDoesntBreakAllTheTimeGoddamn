@@ -95,18 +95,22 @@
   "Process running the IDE server.")
 
 (defun ide-server-request (endpoint method &optional data)
-  "Make HTTP request to IDE server."
-  (let ((url (concat ide-server-url endpoint))
-        (url-request-method method)
-        (url-request-extra-headers '(("Content-Type" . "application/json")))
-        (url-request-data (when data (json-encode data))))
-    (with-current-buffer (url-retrieve-synchronously url t nil 5)
-      (goto-char (point-min))
-      (re-search-forward "^$")
-      (let ((json-object-type 'hash-table)
-            (json-array-type 'list)
-            (json-key-type 'string))
-        (json-read)))))
+  "Make HTTP request to IDE server.
+Returns the parsed JSON response or signals an error on failure."
+  (condition-case err
+      (let ((url (concat ide-server-url endpoint))
+            (url-request-method method)
+            (url-request-extra-headers '(("Content-Type" . "application/json")))
+            (url-request-data (when data (json-encode data))))
+        (with-current-buffer (url-retrieve-synchronously url t nil 5)
+          (goto-char (point-min))
+          (re-search-forward "^$")
+          (let ((json-object-type 'hash-table)
+                (json-array-type 'list)
+                (json-key-type 'string))
+            (json-read))))
+    (error
+     (signal 'error (list (format "IDE Server request failed: %s" (error-message-string err)))))))
 
 (defun ide-server-start ()
   "Start the IDE server if not already running."
@@ -119,10 +123,18 @@
             (setq ide-server-process
                   (start-process "ide-server" "*IDE Server*"
                                  "python3" "-u" server-script))
-            (message "IDE Server started on %s" ide-server-url)
-            ;; Give it a moment to start up
-            (sleep-for 2))
+            (message "IDE Server starting on %s..." ide-server-url)
+            ;; Wait for server to be ready with retries
+            (run-with-timer 1 nil #'ide-server-check-ready))
         (message "IDE Server script not found at %s" server-script)))))
+
+(defun ide-server-check-ready ()
+  "Check if IDE server is ready and report status."
+  (condition-case nil
+      (let ((response (ide-server-request "/health" "GET")))
+        (when (string= (gethash "status" response) "ok")
+          (message "IDE Server ready on %s" ide-server-url)))
+    (error (message "IDE Server is starting..."))))
 
 (defun ide-server-stop ()
   "Stop the IDE server."
