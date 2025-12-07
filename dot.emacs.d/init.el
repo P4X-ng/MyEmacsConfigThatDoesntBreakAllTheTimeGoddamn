@@ -197,7 +197,44 @@
   (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
 
 ;; --- Completion + Orderless ---
-(use-package corfu :init (global-corfu-mode))
+;; Corfu: Modern in-buffer completion popup (auto-shows while typing)
+(use-package corfu
+  :custom
+  (corfu-auto t)                   ; Enable auto completion
+  (corfu-auto-delay 0.2)           ; Show completions after 0.2s
+  (corfu-auto-prefix 2)            ; Trigger after 2 characters
+  (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
+  (corfu-preview-current nil)      ; Don't preview current candidate
+  (corfu-quit-no-match 'separator) ; Quit on no match except after separator
+  :init
+  (global-corfu-mode))
+
+;; Corfu popupinfo: Show documentation popup next to completions
+(use-package corfu-popupinfo
+  :after corfu
+  :hook (corfu-mode . corfu-popupinfo-mode)
+  :custom
+  (corfu-popupinfo-delay '(0.5 . 0.2)) ; Show doc after 0.5s, update after 0.2s
+  :config
+  (corfu-popupinfo-mode))
+
+;; Cape: Completion At Point Extensions - adds extra completion sources
+(use-package cape
+  :init
+  ;; Add useful completion sources
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)  ; Dynamic abbreviations
+  (add-to-list 'completion-at-point-functions #'cape-file)     ; File paths
+  (add-to-list 'completion-at-point-functions #'cape-keyword)) ; Programming language keywords
+
+;; Kind-icon: Add icons to completion candidates showing their type
+(use-package kind-icon
+  :after corfu
+  :custom
+  (kind-icon-default-face 'corfu-default)
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+;; Orderless: Flexible completion matching (space-separated patterns)
 (use-package orderless
   :after corfu
   :custom
@@ -206,8 +243,24 @@
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;; --- Syntax checking + LSP ---
+;; Flycheck: Real-time syntax checking
 (use-package flycheck :init (global-flycheck-mode 1))
 
+;; LSP-mode: Language Server Protocol for intelligent code features
+;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
+;; SETUP NOTES:
+;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
+;; - Bash: Install bash-language-server with: npm install -g bash-language-server
+;; Note: Python autocomplete is handled separately (Jedi containerized)
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c l"
+        lsp-enable-snippet t
+        lsp-idle-delay 0.3
+        lsp-warn-no-matched-clients nil
+        ;; Improve LSP completion integration with corfu
+        lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
+  :hook ((bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
 ;; --- Jedi Language Server (containerized) ---
 ;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
 (defvar my/jedi-lsp-path
@@ -263,6 +316,16 @@
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
   :commands lsp)
 
+;; Configure LSP completion to work seamlessly with corfu
+(defun my/lsp-mode-setup-completion ()
+  (when (boundp 'completion-category-defaults)
+    (let ((lsp-capf-entry (assq 'lsp-capf completion-category-defaults)))
+      (if lsp-capf-entry
+          (setf (alist-get 'styles (cdr lsp-capf-entry)) '(orderless))
+        (push '(lsp-capf (styles orderless)) completion-category-defaults)))))
+(add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
+
+;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
 (defun my/setup-python-lsp ()
   "Setup Python LSP with Jedi or fallback to pyright."
   (let ((jedi-server (my/find-jedi-language-server))
@@ -581,6 +644,20 @@ Returns the parsed JSON response or signals an error on failure."
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
+    (princ "Emacs IDE Keybindings\n=====================\n\n")
+    (princ "Autocompletion:\n")
+    (princ "  Auto ........... Completions appear while typing (2+ chars)\n")
+    (princ "  TAB ............ Accept/cycle forward through completions\n")
+    (princ "  S-TAB .......... Cycle backward\n")
+    (princ "  RET ............ Insert selected completion\n")
+    (princ "  ESC ............ Cancel popup\n\n")
+    (princ "LSP Commands (C-c l prefix):\n")
+    (princ "  C-c l g g ...... Go to definition\n")
+    (princ "  C-c l g r ...... Find references\n")
+    (princ "  C-c l r r ...... Rename symbol\n")
+    (princ "  C-c l h h ...... Show documentation\n")
+    (princ "  C-c l = ........ Format buffer/region\n\n")
+    (princ "Navigation / UI:\n")
     (princ "🚀 Enhanced Emacs IDE Keybindings\n")
     (princ "=====================================\n\n")
     (princ "🖥️  Terminal & Shell:\n")
@@ -632,7 +709,8 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
     (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")))
+    (princ "  C-k ............ Show this cheat sheet\n\n")
+    (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
