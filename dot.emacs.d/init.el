@@ -31,6 +31,7 @@
 (global-display-line-numbers-mode 1)
 (setq inhibit-startup-screen t)
 
+;; --- VSCode-like Theming ---
 ;; Better defaults for visual appeal
 (setq-default cursor-type 'bar)
 (global-hl-line-mode 1)
@@ -252,6 +253,12 @@
   (completion-styles '(orderless basic))
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles basic partial-completion)))))
+
+;; --- Cape (Completion backends for better suggestions) ---
+(use-package cape
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev))
 
 ;; --- Syntax checking + LSP ---
 ;; Flycheck: Real-time syntax checking
@@ -732,7 +739,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-x p .......... Project prefix (find file, switch project)\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
-    (princ "  C-c g .......... Open GPTel chat\n")
+    (princ "  C-c C-g ........ Open GPTel chat\n")
     (princ "  C-c RET ........ Send prompt (inside chat buffer)\n\n")
     (princ "IDE Server (Python):\n")
     (princ "  C-c i c ........ Send chat message to IDE server\n")
@@ -810,4 +817,4 @@ Returns the parsed JSON response or signals an error on failure."
 ;; --- Suppress end-of-file warnings ---
 (setq warning-suppress-types '((initialization)))
 
-(message "🚀 Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
+(message "Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
