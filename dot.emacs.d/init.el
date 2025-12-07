@@ -108,10 +108,7 @@
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 (use-package lsp-pyright :after lsp-mode)
 
-;; --- Projects & Git ---
-;; (use-package projectile :init (projectile-mode 1)
-;;  :bind-keymap ("C-c p" . projectile-command-map)
-;;  :config (setq projectile-project-search-path '("~/Projects" "~")))
+;; --- Git ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
 ;; --- Treemacs ---
@@ -119,7 +116,12 @@
   :defer t
   :bind (("<f8>" . treemacs))
   :config (setq treemacs-width 30))
-(use-package treemacs-projectile :after (treemacs projectile))
+;; Bookmarks - simple, persistent file shortcuts
+;; Use C-x r m to set a bookmark, C-x r b to jump to one
+;; Or use the custom keybindings below
+(global-set-key (kbd "C-c b m") #'bookmark-set)
+(global-set-key (kbd "C-c b j") #'bookmark-jump)
+(global-set-key (kbd "C-c b l") #'bookmark-bmenu-list)
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -146,7 +148,7 @@
       (ignore-errors (gptel)))))
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
 
-;; --- Clean dead project entries (built-in project.el + projectile, if present) ---
+;; --- Clean dead project entries (built-in project.el) ---
 (defun my/prune-dead-projects ()
   "Drop projects that no longer exist so startup is quiet."
   (require 'seq)
@@ -158,13 +160,7 @@
                             (and dir (file-directory-p dir))))
                         project--list))
       (when (fboundp 'project--write-project-list)
-        (project--write-project-list))))
-  (when (featurep 'projectile)
-    (when (boundp 'projectile-known-projects)
-      (setq projectile-known-projects
-            (seq-filter #'file-directory-p projectile-known-projects))
-      (when (fboundp 'projectile-save-known-projects)
-        (projectile-save-known-projects)))))
+        (project--write-project-list)))))
 (add-hook 'emacs-startup-hook #'my/prune-dead-projects)
 
 (defun my/cleanup-treemacs-persist ()
@@ -265,8 +261,10 @@
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Projects & Git:\n")
-    (princ "  C-c p .......... Projectile prefix\n")
+    (princ "Bookmarks & Git:\n")
+    (princ "  C-c b m ........ Set bookmark at current location\n")
+    (princ "  C-c b j ........ Jump to bookmark\n")
+    (princ "  C-c b l ........ List all bookmarks\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c g .......... Open GPTel chat\n")
