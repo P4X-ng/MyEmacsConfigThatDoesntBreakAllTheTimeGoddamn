@@ -65,11 +65,25 @@ class ChatManager:
             )
         else:
             # TODO: Implement actual LLM API call here
+            # Example implementations:
+            # 
+            # For OpenAI (install: pip install openai):
+            #   import openai
+            #   client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
+            #   response = client.chat.completions.create(
+            #       model=self.model,
+            #       messages=self.get_conversation(conv_id)
+            #   )
+            #   return response.choices[0].message.content
+            #
+            # For local LLMs (vLLM, TGI compatible):
+            #   Same as OpenAI, just set OPENAI_BASE_URL to local endpoint
+            #
             # This is a placeholder for the actual implementation
             response = (
                 f"🤖 LLM integration placeholder (backend: {self.backend}, model: {self.model})\n"
                 f"Your message: {message}\n"
-                f"To enable full LLM functionality, implement the API call in server.py"
+                f"To enable full LLM functionality, implement the API call in server.py (see TODO above)"
             )
         
         # Add assistant response
@@ -122,7 +136,18 @@ class ContextManager:
         if not self.context_dirs:
             return "No context directories configured. Use /context/add to add directories."
         
+        # Extended list of binary/excluded file extensions
+        excluded_extensions = (
+            '.pyc', '.pyo', '.so', '.o', '.class', '.jar', '.war', '.ear',
+            '.exe', '.dll', '.bin', '.dat', '.db', '.sqlite', '.log',
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico', '.svg',
+            '.zip', '.tar', '.gz', '.bz2', '.xz', '.rar', '.7z',
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'
+        )
+        
         results = []
+        file_match_counts = {}  # Track matches per file for efficiency
+        
         for directory in self.context_dirs:
             if not os.path.isdir(directory):
                 continue
@@ -134,18 +159,22 @@ class ContextManager:
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     
                     for file in files:
-                        # Skip hidden files and common binary files
-                        if file.startswith('.') or file.endswith(('.pyc', '.so', '.o', '.class')):
+                        # Skip hidden files and binary files
+                        if file.startswith('.') or file.endswith(excluded_extensions):
                             continue
                         
                         filepath = os.path.join(root, file)
+                        file_match_counts[filepath] = 0
+                        
                         try:
                             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                                 for line_num, line in enumerate(f, 1):
                                     if query.lower() in line.lower():
                                         results.append(f"{filepath}:{line_num}: {line.strip()}")
+                                        file_match_counts[filepath] += 1
+                                        
                                         # Limit results per file
-                                        if len([r for r in results if r.startswith(filepath)]) >= 3:
+                                        if file_match_counts[filepath] >= 3:
                                             break
                         except (IOError, OSError):
                             continue
