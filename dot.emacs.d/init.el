@@ -105,8 +105,60 @@
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
   :commands lsp)
 
+(defun my/setup-python-lsp ()
+  "Setup Python LSP with Jedi or fallback to pyright."
+  (let ((jedi-server (my/find-jedi-language-server))
+        (pylsp-server (my/find-pylsp-server)))
+    (cond
+     ;; Prefer Jedi Language Server
+     (jedi-server
+      (message "[LSP] Using Jedi Language Server: %s" jedi-server)
+      (setq-local lsp-jedi-language-server-command jedi-server)
+      (require 'lsp-jedi nil t)
+      (lsp))
+     ;; Fallback to Python LSP Server with Jedi
+     (pylsp-server
+      (message "[LSP] Using Python LSP Server: %s" pylsp-server)
+      (setq-local lsp-pylsp-server-command pylsp-server)
+      (require 'lsp-pylsp nil t)
+      (lsp))
+     ;; Final fallback to pyright
+     ((executable-find "pyright")
+      (message "[LSP] Using Pyright fallback")
+      (require 'lsp-pyright nil t)
+      (lsp))
+     (t
+      (message "[LSP] No Python language server found. Install Jedi with: ./scripts/deploy-jedi.sh")))))
+
+;; --- Jedi Language Server Configuration ---
+(use-package lsp-jedi
+  :straight (:host github :repo "fredcamps/lsp-jedi")
+  :after lsp-mode
+  :config
+  (setq lsp-jedi-completion-enabled t
+        lsp-jedi-completion-include-params t
+        lsp-jedi-diagnostics-enabled t
+        lsp-jedi-hover-enabled t
+        lsp-jedi-references-enabled t
+        lsp-jedi-signature-help-enabled t
+        lsp-jedi-symbols-enabled t))
+
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
-(use-package lsp-pyright :after lsp-mode)
+
+;; --- Jedi Health Check Command ---
+(defun my/jedi-health-check ()
+  "Run Jedi health check for current venv."
+  (interactive)
+  (let ((health-check (or (executable-find "jedi-health-check")
+                         (when pyvenv-virtual-env
+                           (expand-file-name "bin/jedi-health-check" pyvenv-virtual-env))
+                         (expand-file-name "jedi/bin/health-check.py" 
+                                          (or pyvenv-virtual-env default-directory)))))
+    (if (and health-check (file-executable-p health-check))
+        (async-shell-command health-check "*Jedi Health Check*")
+      (message "Jedi health check not found. Deploy Jedi first: ./scripts/deploy-jedi.sh"))))
+
+(global-set-key (kbd "C-c j h") #'my/jedi-health-check)
 
 ;; --- Git ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
