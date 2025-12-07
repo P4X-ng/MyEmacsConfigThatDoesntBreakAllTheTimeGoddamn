@@ -275,6 +275,18 @@
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
     (princ "Emacs IDE Keybindings\n=====================\n\n")
+    (princ "Autocompletion:\n")
+    (princ "  Auto ........... Completions appear while typing (2+ chars)\n")
+    (princ "  TAB ............ Accept/cycle forward through completions\n")
+    (princ "  S-TAB .......... Cycle backward\n")
+    (princ "  RET ............ Insert selected completion\n")
+    (princ "  ESC ............ Cancel popup\n\n")
+    (princ "LSP Commands (C-c l prefix):\n")
+    (princ "  C-c l g g ...... Go to definition\n")
+    (princ "  C-c l g r ...... Find references\n")
+    (princ "  C-c l r r ...... Rename symbol\n")
+    (princ "  C-c l h h ...... Show documentation\n")
+    (princ "  C-c l = ........ Format buffer/region\n\n")
     (princ "Navigation / UI:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
@@ -294,7 +306,8 @@
     (princ "  C-c v d ........ Deactivate\n")
     (princ "  C-c v s ........ Show active venv\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")))
+    (princ "  C-k ............ Show this cheat sheet\n\n")
+    (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
 
 ;; --- Suppress end-of-file warnings ---

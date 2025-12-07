@@ -2,10 +2,26 @@
 
 Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Emacs at any time to show this list from within the editor.
 
+## Autocompletion
+- Completions appear **automatically** while typing (after 2 characters)
+- `TAB` — Accept completion or cycle forward
+- `S-TAB` — Cycle backward through completions
+- `RET` (Enter) — Insert selected completion
+- `ESC` — Cancel completion popup
+
+**Documentation popups** appear next to completions after 0.5 seconds showing function signatures, type info, and docstrings.
+
 ## Navigation & UI
 - `F8` — Toggle Treemacs sidebar
 - `M-←` / `M-→` — Previous / next tab
 - `M-t` / `M-w` — New / close tab
+
+## LSP (Language Server) Commands
+- `C-c l g g` — Go to definition
+- `C-c l g r` — Find references
+- `C-c l r r` — Rename symbol
+- `C-c l h h` — Show documentation (hover info)
+- `C-c l =` — Format buffer/region
 
 ## Projects & Git
 - `C-c p` — Projectile command map
@@ -25,4 +41,10 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c v d` — Deactivate the current environment
 - `C-c v s` — Show the currently active environment
 
-Keep `init.el` handy for more advanced customization details.***
+## Setup Notes
+See `AUTOCOMPLETE_SETUP.md` for full setup instructions including:
+- Installing language servers (pyright for Python, clangd for C/C++, bash-language-server)
+- Ubuntu 24.04 specific instructions
+- Testing and troubleshooting tips
+
+Keep `init.el` handy for more advanced customization details.
