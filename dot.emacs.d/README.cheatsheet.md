@@ -23,6 +23,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c p` — Projectile command map (enhanced)
 - `C-c p f` — Find file in project
 - `C-c p s g` — Grep in project  
+## Git
 - `C-x g` — Open Magit status for the current repo
 - `C-c g` — Git grep (counsel)
 
@@ -58,5 +59,15 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 ---
 
 **No more shell frustration!** The terminal now behaves like your normal system shell instead of that "fucked up mix of emacs and bash" 🎉
+## Python LSP (Jedi)
+Jedi Language Server is containerized for reliable installation.
+
+**Setup:**
+```bash
+cd jedi-container
+./setup-jedi.sh
+```
+
+This installs jedi-language-server to `~/.venv/jedi/` which is automatically detected by Emacs.
 
 Keep `init.el` handy for more advanced customization details.
