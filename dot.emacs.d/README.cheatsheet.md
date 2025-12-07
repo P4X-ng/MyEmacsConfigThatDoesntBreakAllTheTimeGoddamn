@@ -24,4 +24,15 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c v d` — Deactivate the current environment
 - `C-c v s` — Show the currently active environment
 
-Keep `init.el` handy for more advanced customization details.***
+## Python LSP (Jedi)
+Jedi Language Server is containerized for reliable installation.
+
+**Setup:**
+```bash
+cd jedi-container
+./setup-jedi.sh
+```
+
+This installs jedi-language-server to `~/.venv/jedi/` which is automatically detected by Emacs.
+
+Keep `init.el` handy for more advanced customization details.

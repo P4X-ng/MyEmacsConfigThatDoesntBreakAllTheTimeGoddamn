@@ -49,25 +49,78 @@
 
 ;; --- Syntax checking + LSP ---
 (use-package flycheck :init (global-flycheck-mode 1))
+
+;; --- Jedi Language Server (containerized) ---
+;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
+(defvar my/jedi-lsp-path
+  (expand-file-name "~/.venv/jedi/bin/jedi-language-server")
+  "Path to containerized jedi-language-server executable.")
+
+(defvar my/jedi-lsp-registered nil
+  "Track whether jedi-lsp client has been registered.")
+
+(defun my/jedi-lsp-available-p ()
+  "Check if containerized jedi-language-server is available."
+  (and (file-exists-p my/jedi-lsp-path)
+       (file-executable-p my/jedi-lsp-path)))
+
+(defun my/ensure-jedi-lsp-registered ()
+  "Register jedi-language-server with lsp-mode if available and not already registered."
+  (when (and (my/jedi-lsp-available-p)
+             (not my/jedi-lsp-registered))
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
+      :major-modes '(python-mode python-ts-mode)
+      :priority 1  ;; Higher priority than pyright (0)
+      :server-id 'jedi-lsp
+      :initialization-options (lambda () '())
+      :initialized-fn (lambda (_workspace)
+                        (message "[LSP] jedi-language-server initialized"))))
+    (setq my/jedi-lsp-registered t)))
+
+;; Choose Python LSP: jedi (containerized) > pyright
+(defun my/python-lsp-setup ()
+  "Setup Python LSP, preferring containerized jedi over pyright."
+  (my/ensure-jedi-lsp-registered)
+  (cond
+   ((my/jedi-lsp-available-p)
+    (message "[LSP] Using containerized jedi-language-server")
+    (lsp))
+   ((executable-find "pyright")
+    (message "[LSP] Using pyright")
+    (require 'lsp-pyright)
+    (lsp))
+   (t (message "[LSP] No Python language server found"))))
+
 (use-package lsp-mode
   :init (setq lsp-keymap-prefix "C-c l"
               lsp-enable-snippet t
               lsp-idle-delay 0.3
               lsp-warn-no-matched-clients nil)
-  :hook ((python-mode . (lambda () (when (executable-find "pyright") (lsp))))
+  :hook ((python-mode . my/python-lsp-setup)
          (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
   :commands lsp)
+
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
-(use-package lsp-pyright :after lsp-mode
-  :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
+(use-package lsp-pyright :after lsp-mode)
 
 ;; --- Git ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
-;; --- Treemacs (Simple File Browser) ---
+;; --- Vterm (real terminal emulator) ---
+(use-package vterm
+  :commands vterm
+  :bind (("C-c t" . vterm)
+         ("C-c T" . vterm-other-window))
+  :config
+  (setq vterm-max-scrollback 10000)
+  (setq vterm-kill-buffer-on-exit t))
+
+;; --- Treemacs ---
 (use-package treemacs
   :defer t
   :bind (("<f8>" . treemacs))
@@ -187,6 +240,9 @@
     (princ "  C-c v a ........ Activate\n")
     (princ "  C-c v d ........ Deactivate\n")
     (princ "  C-c v s ........ Show active venv\n\n")
+    (princ "Python LSP (Jedi):\n")
+    (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
+    (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
