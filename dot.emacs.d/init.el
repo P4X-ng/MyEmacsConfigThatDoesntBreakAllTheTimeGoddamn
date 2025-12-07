@@ -111,16 +111,19 @@
 
 ;; Configure LSP completion to work seamlessly with corfu
 (defun my/lsp-mode-setup-completion ()
-  (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-        '(orderless)))
+  (when (boundp 'completion-category-defaults)
+    (let ((lsp-capf-entry (assq 'lsp-capf completion-category-defaults)))
+      (if lsp-capf-entry
+          (setf (alist-get 'styles (cdr lsp-capf-entry)) '(orderless))
+        (push '(lsp-capf (styles orderless)) completion-category-defaults)))))
 (add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
 
 ;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 
 ;; LSP-Pyright: Python language server (modern alternative to Jedi)
-(use-package lsp-pyright :after lsp-mode
-  :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
+;; Note: The python-mode hook in lsp-mode already starts LSP; this just ensures lsp-pyright is loaded
+(use-package lsp-pyright :after lsp-mode)
 
 ;; --- Projects & Git ---
 ;; (use-package projectile :init (projectile-mode 1)
