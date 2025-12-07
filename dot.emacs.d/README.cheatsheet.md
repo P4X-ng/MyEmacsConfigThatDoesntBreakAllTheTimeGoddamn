@@ -7,8 +7,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `M-←` / `M-→` — Previous / next tab
 - `M-t` / `M-w` — New / close tab
 
-## Projects & Git
-- `C-c p` — Projectile command map
+## Git
 - `C-x g` — Open Magit status for the current repo
 
 ## GPTel / LLM Chat

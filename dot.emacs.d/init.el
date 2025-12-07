@@ -177,12 +177,6 @@
   :defer t
   :bind (("<f8>" . treemacs))
   :config (setq treemacs-width 30))
-;; Bookmarks - simple, persistent file shortcuts
-;; Use C-x r m to set a bookmark, C-x r b to jump to one
-;; Or use the custom keybindings below
-(global-set-key (kbd "C-c b m") #'bookmark-set)
-(global-set-key (kbd "C-c b j") #'bookmark-jump)
-(global-set-key (kbd "C-c b l") #'bookmark-bmenu-list)
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -208,43 +202,6 @@
                    (getenv "OPENAI_API_KEY")))
       (ignore-errors (gptel)))))
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
-
-;; --- Clean dead project entries (built-in project.el) ---
-(defun my/prune-dead-projects ()
-  "Drop projects that no longer exist so startup is quiet."
-  (require 'seq)
-  (when (featurep 'project)
-    (when (boundp 'project--list)
-      (setq project--list
-            (seq-filter (lambda (proj)
-                          (let ((dir (car proj)))
-                            (and dir (file-directory-p dir))))
-                        project--list))
-      (when (fboundp 'project--write-project-list)
-        (project--write-project-list)))))
-(add-hook 'emacs-startup-hook #'my/prune-dead-projects)
-
-(defun my/cleanup-treemacs-persist ()
-  "Nuke treemacs cache if it points at missing paths."
-  (let ((persist (expand-file-name ".cache/treemacs-persist" user-emacs-directory)))
-    (when (file-exists-p persist)
-      (with-temp-buffer
-        (insert-file-contents persist)
-        (goto-char (point-min))
-        (let (bad)
-          (while (re-search-forward "- path :: \\(.*\\)" nil t)
-            (let* ((raw (match-string 1))
-                   (path (string-trim (substitute-in-file-name raw))))
-              (unless (file-directory-p path)
-                (setq bad t))))
-          (when bad
-            (ignore-errors
-              (delete-file persist)
-              (let ((bak (concat persist "~")))
-                (when (file-exists-p bak) (delete-file bak)))))))))
-  (when (fboundp 'treemacs)
-    (ignore-errors (treemacs))))
-(add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
 
@@ -322,15 +279,7 @@
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Terminal:\n")
-    (princ "  C-c t .......... Open vterm (real terminal)\n")
-    (princ "  C-c T .......... Open vterm in other window\n\n")
-    (princ "Projects & Git:\n")
-    (princ "  C-c p .......... Projectile prefix\n")
-    (princ "Bookmarks & Git:\n")
-    (princ "  C-c b m ........ Set bookmark at current location\n")
-    (princ "  C-c b j ........ Jump to bookmark\n")
-    (princ "  C-c b l ........ List all bookmarks\n")
+    (princ "Git:\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c g .......... Open GPTel chat\n")
