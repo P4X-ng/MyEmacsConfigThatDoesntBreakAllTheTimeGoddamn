@@ -102,12 +102,14 @@ Automatic code formatting on save (when formatters are installed):
 
 ## ⌨️ Key Keybindings
 
+**Note**: This configuration preserves standard Emacs keybindings (like `C-p` for previous-line, `C-b` for backward-char) and adds VSCode-like alternatives that don't conflict with core Emacs functionality.
+
 ### File & Navigation
 | Keybinding | Action |
 |------------|--------|
 | `F8` | Toggle Treemacs sidebar |
-| `C-p` | Quick open file |
-| `C-b` | Switch buffer |
+| `C-c C-p` | Quick open file (VSCode-like) |
+| `C-x C-b` | Switch buffer (enhanced) |
 | `C-S-f` | Search in files |
 
 ### Tabs
@@ -121,7 +123,6 @@ Automatic code formatting on save (when formatters are installed):
 | Keybinding | Action |
 |------------|--------|
 | `C-/` | Comment/uncomment line |
-| `C-d` / `C-S-k` | Delete line |
 | `M-↑` / `M-↓` | Move line up/down |
 | `C->` / `C-<` | Mark next/previous like this |
 | `C-S-c C-S-c` | Edit multiple lines |

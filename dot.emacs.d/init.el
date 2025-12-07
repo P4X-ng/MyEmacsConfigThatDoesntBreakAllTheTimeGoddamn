@@ -46,7 +46,7 @@
   :config
   (setq doom-modeline-height 25
         doom-modeline-bar-width 3
-        doom-modeline-buffer-file-name-style 'truncate-upto-project
+        doom-modeline-buffer-file-name-style 'truncate-upto-root
         doom-modeline-icon t
         doom-modeline-major-mode-icon t
         doom-modeline-minor-modes nil
@@ -116,13 +116,26 @@
 
 ;; --- VSCode-like keybindings ---
 (global-set-key (kbd "C-/") 'comment-line)  ; Comment/uncomment line
-(global-set-key (kbd "C-d") 'kill-whole-line)  ; Delete line
-(global-set-key (kbd "C-S-k") 'kill-whole-line)  ; Alternative delete line
-(global-set-key (kbd "M-<up>") (lambda () (interactive) (transpose-lines 1) (forward-line -2)))  ; Move line up
-(global-set-key (kbd "M-<down>") (lambda () (interactive) (forward-line 1) (transpose-lines 1) (forward-line -1)))  ; Move line down
-(global-set-key (kbd "C-p") 'find-file)  ; Quick open (like Ctrl+P in VSCode)
+
+;; Define named functions for line movement
+(defun my/move-line-up ()
+  "Move the current line up."
+  (interactive)
+  (transpose-lines 1)
+  (forward-line -2))
+
+(defun my/move-line-down ()
+  "Move the current line down."
+  (interactive)
+  (forward-line 1)
+  (transpose-lines 1)
+  (forward-line -1))
+
+(global-set-key (kbd "M-<up>") 'my/move-line-up)  ; Move line up
+(global-set-key (kbd "M-<down>") 'my/move-line-down)  ; Move line down
+(global-set-key (kbd "C-c C-p") 'find-file)  ; Quick open (VSCode-like, doesn't override C-p)
 (global-set-key (kbd "C-S-f") 'rgrep)  ; Search in files
-(global-set-key (kbd "C-b") 'switch-to-buffer)  ; Quick switch buffer
+(global-set-key (kbd "C-x C-b") 'switch-to-buffer)  ; Quick switch buffer (enhanced C-x b)
 
 ;; --- Completion + Orderless (VSCode IntelliSense-like) ---
 (use-package vertico
@@ -312,15 +325,14 @@
     (princ "Emacs VSCode-like IDE Keybindings\n================================\n\n")
     (princ "File & Navigation:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar (file explorer)\n")
-    (princ "  C-p ............ Quick open file (like Ctrl+P in VSCode)\n")
-    (princ "  C-b ............ Switch buffer (like Ctrl+Tab)\n")
+    (princ "  C-c C-p ........ Quick open file (VSCode-like)\n")
+    (princ "  C-x C-b ........ Switch buffer (enhanced)\n")
     (princ "  C-S-f .......... Search in files (like Ctrl+Shift+F)\n\n")
     (princ "Tabs:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
     (princ "Editing:\n")
     (princ "  C-/ ............ Comment/uncomment line\n")
-    (princ "  C-d / C-S-k .... Delete line\n")
     (princ "  M-↑ / M-↓ ...... Move line up/down\n")
     (princ "  C-> / C-< ...... Mark next/previous like this (multi-cursor)\n")
     (princ "  C-S-c C-S-c .... Edit multiple lines\n\n")
