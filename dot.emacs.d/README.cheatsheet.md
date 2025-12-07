@@ -19,6 +19,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 
 ## 🗂️ Navigation & Files  
 - `F8` — Toggle Treemacs sidebar
+<<<<<<< HEAD
 - `C-x C-f` — Find file (enhanced with counsel)
 - `C-c f` — Recent files
 - `C-s` — Search in buffer (swiper)
@@ -26,9 +27,11 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-x C-b` — Buffer list (organized with ibuffer)
 
 ## 📑 Tabs & Windows
-- `M-←` / `M-→` — Previous / next tab
+- `M-←/→/↑/↓` — Move between windows
+- `C-|` — Split window vertically (side-by-side)
+- `C--` — Split window horizontally (top/bottom)
+- `M-PgUp` / `M-PgDn` — Previous / next tab
 - `M-t` / `M-w` — New / close tab
-- `C-c l` — Reset IDE layout (Treemacs left, shell bottom, chat right)
 
 ## LSP (Language Server) Commands
 - `C-c l g g` — Go to definition
@@ -38,9 +41,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c l =` — Format buffer/region
 
 ## Projects & Git
-- `C-c p` — Projectile command map
-## Git
-- `C-x g` — Open Magit status for the current repo
+- `C-x p` — Project commands (find file, switch project, etc.)
 - `C-c g` — Git grep (counsel)
 
 ## 🤖 GPTel / LLM Chat
