@@ -1,0 +1,25 @@
+_codeql_detected_source_root
+# Emacs backup files
+*~
+\#*\#
+.\#*
+
+# Emacs auto-save
+*.elc
+.cache/
+eln-cache/
+auto-save-list/
+
+# Straight.el build artifacts (keep repos)
+dot.emacs.d/straight/build/
+dot.emacs.d/straight/build-cache.el
+
+# Projectile
+projectile-bookmarks.eld
+
+# macOS
+.DS_Store
+
+# Docker
+.docker
+*.log
