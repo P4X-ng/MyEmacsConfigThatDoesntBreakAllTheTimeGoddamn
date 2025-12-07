@@ -1,0 +1,18 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE server logs
+ide-server/*.log
+
+# Emacs backup files
+*~
+\#*\#
+.\#*
+
+# Straight.el build artifacts (already exists, but just in case)
+straight/
+auto-save-list/
+.cache/

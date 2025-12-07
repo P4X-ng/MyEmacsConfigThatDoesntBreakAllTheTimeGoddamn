@@ -23,7 +23,7 @@
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
-;; --- Safe UI setup (terminal-friendly) ---
+;; --- Enhanced UI setup ---
 (when (fboundp 'menu-bar-mode)   (menu-bar-mode -1))
 (when (fboundp 'tool-bar-mode)   (tool-bar-mode -1))
 (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
@@ -31,12 +31,170 @@
 (global-display-line-numbers-mode 1)
 (setq inhibit-startup-screen t)
 
+;; Better defaults for visual appeal
+(setq-default cursor-type 'bar)
+(global-hl-line-mode 1)
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+(setq ring-bell-function 'ignore)
+
+;; --- Modern Theme ---
+(use-package doom-themes
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-one t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config))
+
+;; --- Enhanced Modeline ---
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 25
+        doom-modeline-bar-width 3
+        doom-modeline-project-detection 'auto
+        doom-modeline-buffer-file-name-style 'truncate-upto-project
+        doom-modeline-icon t
+        doom-modeline-major-mode-icon t
+        doom-modeline-major-mode-color-icon t
+        doom-modeline-buffer-state-icon t
+        doom-modeline-buffer-modification-icon t
+        doom-modeline-minor-modes nil
+        doom-modeline-enable-word-count nil
+        doom-modeline-buffer-encoding nil
+        doom-modeline-indent-info nil
+        doom-modeline-checker-simple-format t
+        doom-modeline-vcs-max-length 12
+        doom-modeline-env-version t
+        doom-modeline-irc-stylize 'identity
+        doom-modeline-github-timer nil
+        doom-modeline-gnus-timer nil))
+
+;; --- Icons (required for doom-modeline) ---
+(use-package all-the-icons
+  :if (display-graphic-p))
+
+;; --- Terminal & Shell Configuration ---
+;; Proper terminal emulation with vterm (compile-dependent)
+(use-package vterm
+  :commands vterm
+  :config
+  (setq vterm-max-scrollback 10000
+        vterm-buffer-name-string "vterm %s"
+        vterm-kill-buffer-on-exit t)
+  ;; Better terminal experience
+  (define-key vterm-mode-map (kbd "C-q") #'vterm-send-next-key)
+  (define-key vterm-mode-map (kbd "M-<left>") #'tab-previous)
+  (define-key vterm-mode-map (kbd "M-<right>") #'tab-next))
+
+;; Fallback terminal for systems where vterm won't compile
+(defun my/terminal ()
+  "Launch terminal - vterm if available, ansi-term otherwise."
+  (interactive)
+  (if (fboundp 'vterm)
+      (vterm)
+    (ansi-term (or (getenv "SHELL") "/bin/bash"))))
+
+(defun my/terminal-here ()
+  "Open terminal in current directory."
+  (interactive)
+  (let ((default-directory (if buffer-file-name
+                               (file-name-directory buffer-file-name)
+                             default-directory)))
+    (my/terminal)))
+
+(defun my/terminal-project ()
+  "Open terminal in project root."
+  (interactive)
+  (let ((default-directory (or (locate-dominating-file default-directory ".git")
+                               (locate-dominating-file default-directory ".project")
+                               default-directory)))
+    (my/terminal)))
+
+;; Terminal keybindings
+(global-set-key (kbd "C-c t") #'my/terminal)
+(global-set-key (kbd "C-c T") #'my/terminal-here)
+(global-set-key (kbd "C-c M-t") #'my/terminal-project)
+
+;; --- Enhanced File Management ---
+(use-package dired-sidebar
+  :commands dired-sidebar-toggle-sidebar
+  :config
+  (setq dired-sidebar-width 30
+        dired-sidebar-theme 'icons))
+
+;; Better dired experience
+(use-package dired-single
+  :after dired
+  :config
+  (define-key dired-mode-map (kbd "RET") 'dired-single-buffer)
+  (define-key dired-mode-map (kbd "^") 'dired-single-up-directory))
+
+;; --- Which-key for keybinding help ---
+(use-package which-key
+  :init (which-key-mode)
+  :config
+  (setq which-key-idle-delay 0.5
+        which-key-idle-secondary-delay 0.05
+        which-key-popup-type 'side-window
+        which-key-side-window-location 'bottom
+        which-key-side-window-max-height 0.25
+        which-key-max-description-length 25
+        which-key-allow-imprecise-window-fit nil
+        which-key-separator " → "))
+
 ;; --- Tab-bar mode ---
 (tab-bar-mode 1)
 (global-set-key (kbd "M-<left>") 'tab-previous)
 (global-set-key (kbd "M-<right>") 'tab-next)
 (global-set-key (kbd "M-t") 'tab-new)
 (global-set-key (kbd "M-w") 'tab-close)
+
+;; --- Enhanced Project Management ---
+(use-package projectile 
+  :init (projectile-mode 1)
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :config 
+  (setq projectile-project-search-path '("~/Projects" "~")
+        projectile-completion-system 'default
+        projectile-enable-caching t
+        projectile-indexing-method 'alien))
+
+;; --- Better Search and Navigation ---
+(use-package ivy
+  :init (ivy-mode 1)
+  :config
+  (setq ivy-use-virtual-buffers t
+        ivy-count-format "(%d/%d) "
+        ivy-wrap t
+        ivy-height 15))
+
+(use-package counsel
+  :after ivy
+  :init (counsel-mode 1)
+  :bind (("M-x" . counsel-M-x)
+         ("C-x C-f" . counsel-find-file)
+         ("C-c f" . counsel-recentf)
+         ("C-c g" . counsel-git-grep)
+         ("C-s" . swiper)))
+
+(use-package swiper
+  :after ivy)
+
+;; --- Git Integration Enhancement ---
+(use-package git-gutter
+  :init (global-git-gutter-mode 1)
+  :config
+  (setq git-gutter:update-interval 0.02))
+
+(use-package git-gutter-fringe
+  :after git-gutter
+  :config
+  (define-fringe-bitmap 'git-gutter-fr:added [224] nil nil '(center repeated))
+  (define-fringe-bitmap 'git-gutter-fr:modified [224] nil nil '(center repeated))
+  (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
 
 ;; --- Completion + Orderless ---
 ;; Corfu: Modern in-buffer completion popup (auto-shows while typing)
@@ -103,6 +261,56 @@
         ;; Improve LSP completion integration with corfu
         lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
   :hook ((bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
+;; --- Jedi Language Server (containerized) ---
+;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
+(defvar my/jedi-lsp-path
+  (expand-file-name "~/.venv/jedi/bin/jedi-language-server")
+  "Path to containerized jedi-language-server executable.")
+
+(defvar my/jedi-lsp-registered nil
+  "Track whether jedi-lsp client has been registered.")
+
+(defun my/jedi-lsp-available-p ()
+  "Check if containerized jedi-language-server is available."
+  (and (file-exists-p my/jedi-lsp-path)
+       (file-executable-p my/jedi-lsp-path)))
+
+(defun my/ensure-jedi-lsp-registered ()
+  "Register jedi-language-server with lsp-mode if available and not already registered."
+  (when (and (my/jedi-lsp-available-p)
+             (not my/jedi-lsp-registered))
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
+      :major-modes '(python-mode python-ts-mode)
+      :priority 1  ;; Higher priority than pyright (0)
+      :server-id 'jedi-lsp
+      :initialization-options (lambda () '())
+      :initialized-fn (lambda (_workspace)
+                        (message "[LSP] jedi-language-server initialized"))))
+    (setq my/jedi-lsp-registered t)))
+
+;; Choose Python LSP: jedi (containerized) > pyright
+(defun my/python-lsp-setup ()
+  "Setup Python LSP, preferring containerized jedi over pyright."
+  (my/ensure-jedi-lsp-registered)
+  (cond
+   ((my/jedi-lsp-available-p)
+    (message "[LSP] Using containerized jedi-language-server")
+    (lsp))
+   ((executable-find "pyright")
+    (message "[LSP] Using pyright")
+    (require 'lsp-pyright)
+    (lsp))
+   (t (message "[LSP] No Python language server found"))))
+
+(use-package lsp-mode
+  :init (setq lsp-keymap-prefix "C-c l"
+              lsp-enable-snippet t
+              lsp-idle-delay 0.3
+              lsp-warn-no-matched-clients nil)
+  :hook ((python-mode . my/python-lsp-setup)
+         (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
@@ -118,20 +326,63 @@
 (add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
 
 ;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
+(defun my/setup-python-lsp ()
+  "Setup Python LSP with Jedi or fallback to pyright."
+  (let ((jedi-server (my/find-jedi-language-server))
+        (pylsp-server (my/find-pylsp-server)))
+    (cond
+     ;; Prefer Jedi Language Server
+     (jedi-server
+      (message "[LSP] Using Jedi Language Server: %s" jedi-server)
+      (setq-local lsp-jedi-language-server-command jedi-server)
+      (require 'lsp-jedi nil t)
+      (lsp))
+     ;; Fallback to Python LSP Server with Jedi
+     (pylsp-server
+      (message "[LSP] Using Python LSP Server: %s" pylsp-server)
+      (setq-local lsp-pylsp-server-command pylsp-server)
+      (require 'lsp-pylsp nil t)
+      (lsp))
+     ;; Final fallback to pyright
+     ((executable-find "pyright")
+      (message "[LSP] Using Pyright fallback")
+      (require 'lsp-pyright nil t)
+      (lsp))
+     (t
+      (message "[LSP] No Python language server found. Install Jedi with: ./scripts/deploy-jedi.sh")))))
+
+;; --- Jedi Language Server Configuration ---
+(use-package lsp-jedi
+  :straight (:host github :repo "fredcamps/lsp-jedi")
+  :after lsp-mode
+  :config
+  (setq lsp-jedi-completion-enabled t
+        lsp-jedi-completion-include-params t
+        lsp-jedi-diagnostics-enabled t
+        lsp-jedi-hover-enabled t
+        lsp-jedi-references-enabled t
+        lsp-jedi-signature-help-enabled t
+        lsp-jedi-symbols-enabled t))
+
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 
-;; --- Projects & Git ---
-;; (use-package projectile :init (projectile-mode 1)
-;;  :bind-keymap ("C-c p" . projectile-command-map)
-;;  :config (setq projectile-project-search-path '("~/Projects" "~")))
+;; --- Git ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
+
+;; --- Vterm (real terminal emulator) ---
+(use-package vterm
+  :commands vterm
+  :bind (("C-c t" . vterm)
+         ("C-c T" . vterm-other-window))
+  :config
+  (setq vterm-max-scrollback 10000)
+  (setq vterm-kill-buffer-on-exit t))
 
 ;; --- Treemacs ---
 (use-package treemacs
   :defer t
   :bind (("<f8>" . treemacs))
   :config (setq treemacs-width 30))
-(use-package treemacs-projectile :after (treemacs projectile))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -147,37 +398,158 @@
   :config
   (global-set-key (kbd "C-c C-g") #'gptel))
 
-;; --- Auto-open panels on startup (treemacs + GPTel chat) ---
-(defun my/open-side-panels ()
+;; --- IDE Server Integration ---
+(defvar ide-server-url "http://127.0.0.1:9999"
+  "Base URL for the Python IDE server.")
+
+(defvar ide-server-process nil
+  "Process running the IDE server.")
+
+(defun ide-server-request (endpoint method &optional data)
+  "Make HTTP request to IDE server.
+Returns the parsed JSON response or signals an error on failure."
+  (condition-case err
+      (let ((url (concat ide-server-url endpoint))
+            (url-request-method method)
+            (url-request-extra-headers '(("Content-Type" . "application/json")))
+            (url-request-data (when data (json-encode data))))
+        (with-current-buffer (url-retrieve-synchronously url t nil 5)
+          (goto-char (point-min))
+          (re-search-forward "^$")
+          (let ((json-object-type 'hash-table)
+                (json-array-type 'list)
+                (json-key-type 'string))
+            (json-read))))
+    (error
+     (signal 'error (list (format "IDE Server request failed: %s" (error-message-string err)))))))
+
+(defun ide-server-start ()
+  "Start the IDE server if not already running."
+  (interactive)
+  (unless (and ide-server-process (process-live-p ide-server-process))
+    (let* ((server-dir (expand-file-name "ide-server" user-emacs-directory))
+           (server-script (expand-file-name "server.py" server-dir)))
+      (if (file-exists-p server-script)
+          (progn
+            (setq ide-server-process
+                  (start-process "ide-server" "*IDE Server*"
+                                 "python3" "-u" server-script))
+            (message "IDE Server starting on %s..." ide-server-url)
+            ;; Wait for server to be ready with retries
+            (run-with-timer 1 nil #'ide-server-check-ready))
+        (message "IDE Server script not found at %s" server-script)))))
+
+(defun ide-server-check-ready ()
+  "Check if IDE server is ready and report status."
+  (condition-case nil
+      (let ((response (ide-server-request "/health" "GET")))
+        (when (string= (gethash "status" response) "ok")
+          (message "IDE Server ready on %s" ide-server-url)))
+    (error (message "IDE Server is starting..."))))
+
+(defun ide-server-stop ()
+  "Stop the IDE server."
+  (interactive)
+  (when (and ide-server-process (process-live-p ide-server-process))
+    (kill-process ide-server-process)
+    (setq ide-server-process nil)
+    (message "IDE Server stopped")))
+
+(defun ide-server-health ()
+  "Check IDE server health."
+  (interactive)
+  (condition-case err
+      (let ((response (ide-server-request "/health" "GET")))
+        (message "IDE Server status: %s" (gethash "status" response)))
+    (error (message "IDE Server not responding: %s" err))))
+
+(defun ide-server-chat-send (message)
+  "Send MESSAGE to IDE server chat."
+  (interactive "sMessage: ")
+  (condition-case err
+      (let* ((data (list (cons "message" message)))
+             (response (ide-server-request "/chat/send" "POST" data))
+             (reply (gethash "response" response)))
+        (message "IDE Chat: %s" reply)
+        (with-current-buffer (get-buffer-create "*IDE Chat*")
+          (goto-char (point-max))
+          (insert (format "\nYou: %s\n" message))
+          (insert (format "Assistant: %s\n" reply))
+          (display-buffer (current-buffer))))
+    (error (message "Failed to send chat message: %s" err))))
+
+(defun ide-server-context-add (path)
+  "Add PATH to IDE server context directories."
+  (interactive "DAdd context directory: ")
+  (condition-case err
+      (let* ((data (list (cons "path" (expand-file-name path))))
+             (response (ide-server-request "/context/add" "POST" data)))
+        (if (eq (gethash "success" response) t)
+            (message "Added context directory: %s" path)
+          (message "Failed to add context directory")))
+    (error (message "Failed to add context directory: %s" err))))
+
+;; Auto-start IDE server on Emacs startup
+(add-hook 'emacs-startup-hook #'ide-server-start)
+
+;; IDE Server keybindings
+(global-set-key (kbd "C-c i c") #'ide-server-chat-send)
+(global-set-key (kbd "C-c i a") #'ide-server-context-add)
+(global-set-key (kbd "C-c i h") #'ide-server-health)
+(global-set-key (kbd "C-c i s") #'ide-server-start)
+(global-set-key (kbd "C-c i q") #'ide-server-stop)
+
+;; --- IDE Layout Setup ---
+(defun my/setup-ide-layout ()
+  "Setup IDE-like layout: Treemacs left, shell bottom, chat right."
+  (interactive)
   (when (not noninteractive)
+    ;; Delete other windows first
+    (delete-other-windows)
+    
+    ;; Open treemacs on the left (it manages its own window)
     (when (fboundp 'treemacs)
       (ignore-errors (treemacs)))
-    (when (and (fboundp 'gptel)
-               (or (bound-and-true-p gptel-api-key)
-                   (getenv "OPENAI_API_KEY")))
-      (ignore-errors (gptel)))))
+    
+    ;; Split for shell at bottom (30% height)
+    (let* ((main-window (selected-window))
+           (shell-window (split-window main-window nil 'below))
+           (shell-height (floor (* 0.3 (window-total-height)))))
+      (select-window shell-window)
+      (window-resize shell-window (- shell-height (window-total-height)))
+      ;; Open shell/eshell in bottom window
+      (if (fboundp 'vterm)
+          (vterm)
+        (eshell))
+      
+      ;; Go back to main window and split right for chat (30% width)
+      (select-window main-window)
+      (let* ((chat-window (split-window main-window nil 'right))
+             (chat-width (floor (* 0.3 (window-total-width)))))
+        (select-window chat-window)
+        (window-resize chat-window (- chat-width (window-total-width)) t)
+        ;; Open IDE chat or GPTel in right window
+        (if (get-buffer "*IDE Chat*")
+            (switch-to-buffer "*IDE Chat*")
+          (when (and (fboundp 'gptel)
+                     (or (bound-and-true-p gptel-api-key)
+                         (getenv "OPENAI_API_KEY")))
+            (ignore-errors (gptel))))
+        
+        ;; Return focus to main editing window
+        (select-window main-window)))))
+
+(defun my/open-side-panels ()
+  "Auto-open panels on startup - using new IDE layout."
+  (when (not noninteractive)
+    (my/setup-ide-layout)))
+
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
 
-;; --- Clean dead project entries (built-in project.el + projectile, if present) ---
-(defun my/prune-dead-projects ()
-  "Drop projects that no longer exist so startup is quiet."
-  (require 'seq)
-  (when (featurep 'project)
-    (when (boundp 'project--list)
-      (setq project--list
-            (seq-filter (lambda (proj)
-                          (let ((dir (car proj)))
-                            (and dir (file-directory-p dir))))
-                        project--list))
-      (when (fboundp 'project--write-project-list)
-        (project--write-project-list))))
-  (when (featurep 'projectile)
-    (when (boundp 'projectile-known-projects)
-      (setq projectile-known-projects
-            (seq-filter #'file-directory-p projectile-known-projects))
-      (when (fboundp 'projectile-save-known-projects)
-        (projectile-save-known-projects)))))
-(add-hook 'emacs-startup-hook #'my/prune-dead-projects)
+;; Keybinding to reset IDE layout
+(global-set-key (kbd "C-c l") #'my/setup-ide-layout)
+
+
 
 (defun my/cleanup-treemacs-persist ()
   "Nuke treemacs cache if it points at missing paths."
@@ -268,7 +640,7 @@
 (global-set-key (kbd "C-c r r") #'my/remove-context-root)
 (global-set-key (kbd "C-c s") #'my/search-context)
 
-;; --- Cheat Sheet ---
+;; --- Enhanced Cheat Sheet ---
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
@@ -286,29 +658,101 @@
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
     (princ "Navigation / UI:\n")
+    (princ "🚀 Enhanced Emacs IDE Keybindings\n")
+    (princ "=====================================\n\n")
+    (princ "🖥️  Terminal & Shell:\n")
+    (princ "  C-c t .......... Open terminal (vterm/ansi-term)\n")
+    (princ "  C-c T .......... Open terminal in current directory\n")
+    (princ "  C-c M-t ........ Open terminal in project root\n\n")
+    (princ "🗂️  Navigation & Files:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
+    (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
+    (princ "  C-c f .......... Recent files\n")
+    (princ "  C-s ............ Search in buffer (swiper)\n")
+    (princ "  M-x ............ Command palette (enhanced)\n\n")
+    (princ "📑 Tabs & Windows:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
-    (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Projects & Git:\n")
-    (princ "  C-c p .......... Projectile prefix\n")
+    (princ "  M-t / M-w ...... New / Close tab\n")
+    (princ "  C-c l .......... Reset IDE layout\n\n")
+    (princ "Git:\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c g .......... Open GPTel chat\n")
     (princ "  C-c RET ........ Send prompt (inside chat buffer)\n\n")
+    (princ "IDE Server (Python):\n")
+    (princ "  C-c i c ........ Send chat message to IDE server\n")
+    (princ "  C-c i a ........ Add context directory\n")
+    (princ "  C-c i h ........ Check IDE server health\n")
+    (princ "  C-c i s ........ Start IDE server\n")
+    (princ "  C-c i q ........ Stop IDE server\n\n")
     (princ "Context Helpers:\n")
     (princ "  C-c s .......... Search & insert from context dirs\n")
     (princ "  C-c r a ........ Add context dir\n")
     (princ "  C-c r r ........ Remove context dir\n\n")
-    (princ "Python venvs:\n")
-    (princ "  C-c v a ........ Activate\n")
-    (princ "  C-c v d ........ Deactivate\n")
+    (princ "🐍 Python venvs:\n")
+    (princ "  C-c v a ........ Activate venv\n")
+    (princ "  C-c v d ........ Deactivate venv\n")
     (princ "  C-c v s ........ Show active venv\n\n")
+    (princ "💡 Help & Discovery:\n")
+    (princ "  C-k ............ Show this cheat sheet\n")
+    (princ "  C-h k .......... Describe key\n")
+    (princ "  C-h f .......... Describe function\n")
+    (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
+    (princ "✨ Quality of Life:\n")
+    (princ "  - Modern doom-one theme with enhanced modeline\n")
+    (princ "  - Git gutter shows changes in fringe\n")
+    (princ "  - Line highlighting and bracket matching\n")
+    (princ "  - Smart completion with ivy/counsel/swiper\n")
+    (princ "  - Real terminal experience with vterm\n")
+    (princ "  - Enhanced project management\n")))
+    (princ "Python LSP (Jedi):\n")
+    (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
+    (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
 
+;; --- Additional Quality of Life Improvements ---
+;; Better buffer management
+(use-package ibuffer
+  :bind ("C-x C-b" . ibuffer)
+  :config
+  (setq ibuffer-saved-filter-groups
+        '(("default"
+           ("Dired" (mode . dired-mode))
+           ("Org" (mode . org-mode))
+           ("Programming" (or (mode . python-mode)
+                              (mode . c-mode)
+                              (mode . c++-mode)
+                              (mode . bash-mode)
+                              (mode . sh-mode)))
+           ("Magit" (name . "^magit"))
+           ("Terminal" (or (mode . vterm-mode)
+                           (mode . term-mode)
+                           (mode . ansi-term-mode)))
+           ("Help" (or (name . "^\\*Help\\*")
+                       (name . "^\\*Apropos\\*")
+                       (name . "^\\*info\\*"))))))
+  (add-hook 'ibuffer-mode-hook
+            (lambda () (ibuffer-switch-to-saved-filter-groups "default"))))
+
+;; Startup performance improvements
+(setq gc-cons-threshold-original gc-cons-threshold)
+(setq gc-cons-threshold (* 1024 1024 100))
+(setq file-name-handler-alist-original file-name-handler-alist)
+(setq file-name-handler-alist nil)
+
+(run-with-idle-timer
+ 5 nil
+ (lambda ()
+   (setq gc-cons-threshold gc-cons-threshold-original)
+   (setq file-name-handler-alist file-name-handler-alist-original)
+   (makunbound 'gc-cons-threshold-original)
+   (makunbound 'file-name-handler-alist-original)
+   (message "✅ Emacs startup optimization complete")))
+
 ;; --- Suppress end-of-file warnings ---
 (setq warning-suppress-types '((initialization)))
 
-(message "✅ Emacs IDE ready (terminal-safe).")
+(message "🚀 Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
