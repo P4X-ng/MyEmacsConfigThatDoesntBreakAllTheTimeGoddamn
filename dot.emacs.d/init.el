@@ -147,10 +147,21 @@
 
 ;; --- Tab-bar mode ---
 (tab-bar-mode 1)
-(global-set-key (kbd "M-<left>") 'tab-previous)
-(global-set-key (kbd "M-<right>") 'tab-next)
-(global-set-key (kbd "M-t") 'tab-new)
-(global-set-key (kbd "M-w") 'tab-close)
+(global-set-key (kbd "M-<prior>") 'tab-previous)
+(global-set-key (kbd "M-<next>")  'tab-next)
+(global-set-key (kbd "M-t")       'tab-new)
+(global-set-key (kbd "M-w")       'tab-close)
+
+;; --- Window Management ---
+(use-package windmove
+  :config
+  (global-set-key (kbd "M-<left>")  'windmove-left)
+  (global-set-key (kbd "M-<right>") 'windmove-right)
+  (global-set-key (kbd "M-<up>")    'windmove-up)
+  (global-set-key (kbd "M-<down>")  'windmove-down))
+
+(global-set-key (kbd "C-|") 'split-window-right)
+(global-set-key (kbd "C--") 'split-window-below)
 
 ;; --- Enhanced Project Management ---
 (use-package projectile 
@@ -313,7 +324,11 @@
          (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
-         (c++-mode . (lambda () (when (executable-find "clangd") (lsp)))))
+         (c++-mode . (lambda () (when (executable-find "clangd") (lsp))))
+         (c-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
+         (c++-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
+         (f90-mode . (lambda () (when (executable-find "fortls") (lsp))))
+         (fortran-mode . (lambda () (when (executable-find "fortls") (lsp)))))
   :commands lsp)
 
 ;; Configure LSP completion to work seamlessly with corfu
@@ -367,6 +382,29 @@
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 
 ;; --- Git ---
+;; --- C/C++ (Treesitter) ---
+(use-package c-ts-mode
+  :if (treesit-available-p)
+  :mode (("\\.c\\'" . c-ts-mode)
+         ("\\.h\\'" . c-ts-mode)
+         ("\\.cpp\\'" . c++-ts-mode)
+         ("\\.hpp\\'" . c++-ts-mode)))
+
+;; --- Fortran ---
+(use-package f90
+  :mode (("\\.f90\\'" . f90-mode)
+         ("\\.f95\\'" . f90-mode)))
+
+;; --- pf-mode (Custom) ---
+(load (expand-file-name "pf-mode.el" user-emacs-directory))
+
+;; --- Projects (project.el) & Git ---
+;; Note: project.el is built-in (C-x p).
+(use-package project
+  :ensure nil
+  :config
+  (setq project-vc-extra-root-markers '(".git" ".hg")))
+
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
 ;; --- Vterm (real terminal emulator) ---
@@ -546,10 +584,21 @@ Returns the parsed JSON response or signals an error on failure."
 
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
 
-;; Keybinding to reset IDE layout
-(global-set-key (kbd "C-c l") #'my/setup-ide-layout)
-
-
+;; --- Clean dead project entries (built-in project.el + projectile, if present) ---
+(defun my/prune-dead-projects ()
+  "Drop projects that no longer exist so startup is quiet."
+  (require 'seq)
+  (when (featurep 'project)
+    (when (boundp 'project--list)
+      (setq project--list
+            (seq-filter (lambda (proj)
+                          (let ((dir (car proj)))
+                            (and dir (file-directory-p dir))))
+                        project--list))
+      (when (fboundp 'project--write-project-list)
+        (project--write-project-list)))))
+;; Removed projectile cleanup code
+(add-hook 'emacs-startup-hook #'my/prune-dead-projects)
 
 (defun my/cleanup-treemacs-persist ()
   "Nuke treemacs cache if it points at missing paths."
@@ -577,7 +626,7 @@ Returns the parsed JSON response or signals an error on failure."
 
 (defun my/format-buffer-after-save ()
   (when (and buffer-file-name
-             (or (derived-mode-p 'python-mode 'bash-mode 'sh-mode 'c-mode 'c++-mode)))
+             (or (derived-mode-p 'python-mode 'bash-mode 'sh-mode 'c-mode 'c++-mode 'c-ts-mode 'c++-ts-mode)))
     (save-excursion
       (let ((file buffer-file-name))
         (cond
@@ -587,7 +636,7 @@ Returns the parsed JSON response or signals an error on failure."
          ((derived-mode-p 'bash-mode 'sh-mode)
           (when (executable-find "shfmt")
             (call-process "shfmt" nil nil nil "-w" file)))
-         ((derived-mode-p 'c-mode 'c++-mode)
+         ((derived-mode-p 'c-mode 'c++-mode 'c-ts-mode 'c++-ts-mode)
           (when (executable-find "clang-format")
             (call-process "clang-format" nil nil nil "-i" file)))))
       ;; Reload the now-formatted file without prompts
@@ -675,6 +724,12 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  M-t / M-w ...... New / Close tab\n")
     (princ "  C-c l .......... Reset IDE layout\n\n")
     (princ "Git:\n")
+    (princ "  M-Arrows ....... Switch window focus\n")
+    (princ "  C-| / C-- ...... Split window vertical / horizontal\n")
+    (princ "  M-PgUp/PgDn .... Switch tabs\n")
+    (princ "  M-t / M-w ...... New / Close tab\n\n")
+    (princ "Projects & Git:\n")
+    (princ "  C-x p .......... Project prefix (find file, switch project)\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c g .......... Open GPTel chat\n")
