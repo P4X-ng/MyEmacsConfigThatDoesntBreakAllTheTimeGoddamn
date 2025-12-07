@@ -31,21 +31,134 @@
 (global-display-line-numbers-mode 1)
 (setq inhibit-startup-screen t)
 
-;; --- Tab-bar mode ---
+;; --- VSCode-like Theming ---
+(use-package doom-themes
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-one t)
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config))
+
+;; --- Modern Modeline (VSCode-like status bar) ---
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 25
+        doom-modeline-bar-width 3
+        doom-modeline-buffer-file-name-style 'truncate-upto-project
+        doom-modeline-icon t
+        doom-modeline-major-mode-icon t
+        doom-modeline-minor-modes nil
+        doom-modeline-lsp t
+        doom-modeline-github nil
+        doom-modeline-mu4e nil
+        doom-modeline-irc nil))
+
+;; --- All-the-icons (for modeline and treemacs) ---
+(use-package all-the-icons
+  :if (display-graphic-p))
+
+;; --- Which-key (Command palette hints like VSCode) ---
+(use-package which-key
+  :init (which-key-mode)
+  :config
+  (setq which-key-idle-delay 0.5
+        which-key-idle-secondary-delay 0.05
+        which-key-popup-type 'side-window
+        which-key-side-window-location 'bottom))
+
+;; --- Multiple cursors (like VSCode) ---
+(use-package multiple-cursors
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this)
+         ("C-c C-<" . mc/mark-all-like-this)))
+
+;; --- Avy (Quick navigation like VSCode's Go to Symbol) ---
+(use-package avy
+  :bind (("C-'" . avy-goto-char-2)
+         ("C-;" . avy-goto-line)))
+
+;; --- Smartparens (Bracket pairing like VSCode) ---
+(use-package smartparens
+  :init
+  (require 'smartparens-config)
+  (smartparens-global-mode t)
+  (show-paren-mode t))
+
+;; --- Rainbow delimiters (Colorful brackets) ---
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+;; --- Highlight indent guides (like VSCode) ---
+(use-package highlight-indent-guides
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'character
+        highlight-indent-guides-responsive 'top))
+
+;; --- Better undo system (like VSCode's undo) ---
+(use-package undo-tree
+  :init (global-undo-tree-mode)
+  :config
+  (setq undo-tree-auto-save-history nil
+        undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
+
+;; --- Tab-bar mode (VSCode-like tabs) ---
 (tab-bar-mode 1)
+(setq tab-bar-close-button-show nil
+      tab-bar-new-button-show nil)
 (global-set-key (kbd "M-<left>") 'tab-previous)
 (global-set-key (kbd "M-<right>") 'tab-next)
 (global-set-key (kbd "M-t") 'tab-new)
 (global-set-key (kbd "M-w") 'tab-close)
 
-;; --- Completion + Orderless ---
-(use-package corfu :init (global-corfu-mode))
+;; --- VSCode-like keybindings ---
+(global-set-key (kbd "C-/") 'comment-line)  ; Comment/uncomment line
+(global-set-key (kbd "C-d") 'kill-whole-line)  ; Delete line
+(global-set-key (kbd "C-S-k") 'kill-whole-line)  ; Alternative delete line
+(global-set-key (kbd "M-<up>") (lambda () (interactive) (transpose-lines 1) (forward-line -2)))  ; Move line up
+(global-set-key (kbd "M-<down>") (lambda () (interactive) (forward-line 1) (transpose-lines 1) (forward-line -1)))  ; Move line down
+(global-set-key (kbd "C-p") 'find-file)  ; Quick open (like Ctrl+P in VSCode)
+(global-set-key (kbd "C-S-f") 'rgrep)  ; Search in files
+(global-set-key (kbd "C-b") 'switch-to-buffer)  ; Quick switch buffer
+
+;; --- Completion + Orderless (VSCode IntelliSense-like) ---
+(use-package vertico
+  :init (vertico-mode)
+  :config
+  (setq vertico-cycle t
+        vertico-resize t))
+
+(use-package marginalia
+  :init (marginalia-mode)
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle)))
+
+(use-package corfu 
+  :init (global-corfu-mode)
+  :config
+  (setq corfu-auto t
+        corfu-auto-delay 0.1
+        corfu-auto-prefix 2
+        corfu-cycle t
+        corfu-quit-no-match 'separator
+        corfu-preselect 'prompt
+        corfu-scroll-margin 5))
+
 (use-package orderless
   :after corfu
   :custom
   (completion-styles '(orderless basic))
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles basic partial-completion)))))
+
+;; --- Cape (Completion backends for better suggestions) ---
+(use-package cape
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev))
 
 ;; --- Syntax checking + LSP ---
 (use-package flycheck :init (global-flycheck-mode 1))
@@ -64,18 +177,18 @@
 (use-package lsp-pyright :after lsp-mode
   :hook (python-mode . (lambda () (when (executable-find "pyright") (require 'lsp-pyright) (lsp)))))
 
-;; --- Projects & Git ---
-;; (use-package projectile :init (projectile-mode 1)
-;;  :bind-keymap ("C-c p" . projectile-command-map)
-;;  :config (setq projectile-project-search-path '("~/Projects" "~")))
+;; --- Git (No projects) ---
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
-;; --- Treemacs ---
+;; --- Treemacs (File explorer like VSCode) ---
 (use-package treemacs
   :defer t
   :bind (("<f8>" . treemacs))
-  :config (setq treemacs-width 30))
-(use-package treemacs-projectile :after (treemacs projectile))
+  :config 
+  (setq treemacs-width 30
+        treemacs-follow-mode t
+        treemacs-filewatch-mode t
+        treemacs-fringe-indicator-mode 'always-visible))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -102,27 +215,7 @@
       (ignore-errors (gptel)))))
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
 
-;; --- Clean dead project entries (built-in project.el + projectile, if present) ---
-(defun my/prune-dead-projects ()
-  "Drop projects that no longer exist so startup is quiet."
-  (require 'seq)
-  (when (featurep 'project)
-    (when (boundp 'project--list)
-      (setq project--list
-            (seq-filter (lambda (proj)
-                          (let ((dir (car proj)))
-                            (and dir (file-directory-p dir))))
-                        project--list))
-      (when (fboundp 'project--write-project-list)
-        (project--write-project-list))))
-  (when (featurep 'projectile)
-    (when (boundp 'projectile-known-projects)
-      (setq projectile-known-projects
-            (seq-filter #'file-directory-p projectile-known-projects))
-      (when (fboundp 'projectile-save-known-projects)
-        (projectile-save-known-projects)))))
-(add-hook 'emacs-startup-hook #'my/prune-dead-projects)
-
+;; --- Clean treemacs cache ---
 (defun my/cleanup-treemacs-persist ()
   "Nuke treemacs cache if it points at missing paths."
   (let ((persist (expand-file-name ".cache/treemacs-persist" user-emacs-directory)))
@@ -216,16 +309,28 @@
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
-    (princ "Emacs IDE Keybindings\n=====================\n\n")
-    (princ "Navigation / UI:\n")
-    (princ "  F8 ............. Toggle Treemacs sidebar\n")
+    (princ "Emacs VSCode-like IDE Keybindings\n================================\n\n")
+    (princ "File & Navigation:\n")
+    (princ "  F8 ............. Toggle Treemacs sidebar (file explorer)\n")
+    (princ "  C-p ............ Quick open file (like Ctrl+P in VSCode)\n")
+    (princ "  C-b ............ Switch buffer (like Ctrl+Tab)\n")
+    (princ "  C-S-f .......... Search in files (like Ctrl+Shift+F)\n\n")
+    (princ "Tabs:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Projects & Git:\n")
-    (princ "  C-c p .......... Projectile prefix\n")
+    (princ "Editing:\n")
+    (princ "  C-/ ............ Comment/uncomment line\n")
+    (princ "  C-d / C-S-k .... Delete line\n")
+    (princ "  M-↑ / M-↓ ...... Move line up/down\n")
+    (princ "  C-> / C-< ...... Mark next/previous like this (multi-cursor)\n")
+    (princ "  C-S-c C-S-c .... Edit multiple lines\n\n")
+    (princ "Navigation:\n")
+    (princ "  C-' ............ Jump to character (Avy)\n")
+    (princ "  C-; ............ Jump to line (Avy)\n\n")
+    (princ "Git:\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
-    (princ "  C-c g .......... Open GPTel chat\n")
+    (princ "  C-c C-g ........ Open GPTel chat\n")
     (princ "  C-c RET ........ Send prompt (inside chat buffer)\n\n")
     (princ "Context Helpers:\n")
     (princ "  C-c s .......... Search & insert from context dirs\n")
@@ -235,11 +340,15 @@
     (princ "  C-c v a ........ Activate\n")
     (princ "  C-c v d ........ Deactivate\n")
     (princ "  C-c v s ........ Show active venv\n\n")
+    (princ "LSP:\n")
+    (princ "  C-c l .......... LSP command prefix\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")))
+    (princ "  C-k ............ Show this cheat sheet\n")
+    (princ "  C-h k .......... Describe key\n")
+    (princ "  C-h f .......... Describe function\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
 
 ;; --- Suppress end-of-file warnings ---
 (setq warning-suppress-types '((initialization)))
 
-(message "✅ Emacs IDE ready (terminal-safe).")
+(message "✅ VSCode-like Emacs IDE ready! Press C-k for keybindings.")
