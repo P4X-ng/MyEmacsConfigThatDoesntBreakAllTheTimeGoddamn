@@ -21,7 +21,12 @@
 ### Findings
 
 #### Files Found: 0
-No `.pf` (Pfyfile) task definition files were found in the repository.
+No `.pf` task definition files were found in the repository.
+
+**Note:** `.pf` files and `Pfyfile` refer to the same thing - pf task definition files. Common naming conventions include:
+- `Pfyfile.pf` - Standard naming (analogous to Makefile)
+- `Pfyfile.*.pf` - Modular task files (e.g., `Pfyfile.web.pf`, `Pfyfile.debug.pf`)
+- `*.pf` - Any file with .pf extension
 
 #### Related Files Found: 1
 - `dot.emacs.d/pf-mode.el` - Emacs major mode for syntax highlighting `.pf` files
@@ -57,7 +62,10 @@ If pf tasks are desired in the future, they should be created following the gram
 - Service management
 
 ### Grammar Reference
-For future reference, the pf task file grammar can be found at: `P4X-ng/pf-web-poly-compile-helper-runner`
+For future reference, the pf task file grammar and comprehensive documentation can be found in the `P4X-ng/pf-web-poly-compile-helper-runner` repository:
+- Main documentation: `README.md` and `QUICKSTART.md`
+- Detailed runner docs: `pf-runner/README.md`
+- Example task files: `Pfyfile.*.pf` files in the repository root
 
 Example pf task syntax:
 ```pf
@@ -79,7 +87,7 @@ find . -type f -name "*.pf"
 find . -type f \( -name "*.pf" -o -name "Pfyfile" -o -name ".pf" \)
 
 # Check git history
-git log --all --full-history --oneline -- "*.pf"
+git log --all --full-history --oneline -- '*.pf'
 ```
 
 All searches returned zero results for pf task files.
