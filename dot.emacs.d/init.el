@@ -314,8 +314,9 @@
           (lsp))
          ((executable-find "pyright")
           (message "[LSP] Using pyright")
-          (require 'lsp-pyright nil t)
-          (lsp))
+          (if (require 'lsp-pyright nil t)
+              (lsp)
+            (message "[LSP] Failed to load lsp-pyright package")))
          (t (message "[LSP] No Python language server found"))))
     (error (message "[LSP] Python LSP setup failed: %s" err))))
 

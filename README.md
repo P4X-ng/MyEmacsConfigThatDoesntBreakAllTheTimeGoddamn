@@ -216,7 +216,7 @@ Delete `~/.emacs.d/straight/` and restart Emacs
 ## 📄 License
 
 This configuration is provided as-is for personal use.
-# My Emacs Config That ~~Doesn't Break All The Time~~ Actually Works Now Goddamn
+# My Emacs Config That Actually Works Now Goddamn
 
 **STATUS: ✅ FIXED AND STABLE** - Configuration has been thoroughly debugged and stabilized!
 
