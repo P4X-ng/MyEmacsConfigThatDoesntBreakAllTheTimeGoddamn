@@ -10,16 +10,21 @@
 
 ;; --- Bootstrap straight.el ---
 (defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 6))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inactive)
-      (goto-char (point-max)) (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+(condition-case err
+    (let ((bootstrap-file
+           (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+          (bootstrap-version 6))
+      (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+             'silent 'inactive)
+          (goto-char (point-max)) (eval-print-last-sexp)))
+      (load bootstrap-file nil 'nomessage))
+  (error 
+   (message "Failed to bootstrap straight.el: %s" err)
+   (message "Please check your internet connection and try again.")))
+
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
@@ -81,6 +86,9 @@
 ;; Proper terminal emulation with vterm (compile-dependent)
 (use-package vterm
   :commands vterm
+  :init
+  ;; Make vterm installation failures silent
+  (setq vterm-install t)
   :config
   (setq vterm-max-scrollback 10000
         vterm-buffer-name-string "vterm %s"
@@ -94,9 +102,13 @@
 (defun my/terminal ()
   "Launch terminal - vterm if available, ansi-term otherwise."
   (interactive)
-  (if (fboundp 'vterm)
-      (vterm)
-    (ansi-term (or (getenv "SHELL") "/bin/bash"))))
+  (condition-case err
+      (if (fboundp 'vterm)
+          (vterm)
+        (ansi-term (or (getenv "SHELL") "/bin/bash")))
+    (error 
+     (message "Failed to open terminal: %s. Trying eshell..." err)
+     (eshell))))
 
 (defun my/terminal-here ()
   "Open terminal in current directory."
@@ -254,31 +266,10 @@
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
-;; --- Cape (Completion backends for better suggestions) ---
-(use-package cape
-  :init
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev))
-
 ;; --- Syntax checking + LSP ---
 ;; Flycheck: Real-time syntax checking
 (use-package flycheck :init (global-flycheck-mode 1))
 
-;; LSP-mode: Language Server Protocol for intelligent code features
-;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
-;; SETUP NOTES:
-;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
-;; - Bash: Install bash-language-server with: npm install -g bash-language-server
-;; Note: Python autocomplete is handled separately (Jedi containerized)
-(use-package lsp-mode
-  :init
-  (setq lsp-keymap-prefix "C-c l"
-        lsp-enable-snippet t
-        lsp-idle-delay 0.3
-        lsp-warn-no-matched-clients nil
-        ;; Improve LSP completion integration with corfu
-        lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
-  :hook ((bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
 ;; --- Jedi Language Server (containerized) ---
 ;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
 (defvar my/jedi-lsp-path
@@ -297,36 +288,51 @@
   "Register jedi-language-server with lsp-mode if available and not already registered."
   (when (and (my/jedi-lsp-available-p)
              (not my/jedi-lsp-registered))
-    (lsp-register-client
-     (make-lsp-client
-      :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
-      :major-modes '(python-mode python-ts-mode)
-      :priority 1  ;; Higher priority than pyright (0)
-      :server-id 'jedi-lsp
-      :initialization-options (lambda () '())
-      :initialized-fn (lambda (_workspace)
-                        (message "[LSP] jedi-language-server initialized"))))
-    (setq my/jedi-lsp-registered t)))
+    (condition-case err
+        (progn
+          (lsp-register-client
+           (make-lsp-client
+            :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
+            :major-modes '(python-mode python-ts-mode)
+            :priority 1  ;; Higher priority than pyright (0)
+            :server-id 'jedi-lsp
+            :initialization-options (lambda () '())
+            :initialized-fn (lambda (_workspace)
+                              (message "[LSP] jedi-language-server initialized"))))
+          (setq my/jedi-lsp-registered t))
+      (error (message "[LSP] Failed to register jedi-language-server: %s" err)))))
 
 ;; Choose Python LSP: jedi (containerized) > pyright
 (defun my/python-lsp-setup ()
   "Setup Python LSP, preferring containerized jedi over pyright."
-  (my/ensure-jedi-lsp-registered)
-  (cond
-   ((my/jedi-lsp-available-p)
-    (message "[LSP] Using containerized jedi-language-server")
-    (lsp))
-   ((executable-find "pyright")
-    (message "[LSP] Using pyright")
-    (require 'lsp-pyright)
-    (lsp))
-   (t (message "[LSP] No Python language server found"))))
+  (condition-case err
+      (progn
+        (my/ensure-jedi-lsp-registered)
+        (cond
+         ((my/jedi-lsp-available-p)
+          (message "[LSP] Using containerized jedi-language-server")
+          (lsp))
+         ((executable-find "pyright")
+          (message "[LSP] Using pyright")
+          (require 'lsp-pyright nil t)
+          (lsp))
+         (t (message "[LSP] No Python language server found"))))
+    (error (message "[LSP] Python LSP setup failed: %s" err))))
 
+;; LSP-mode: Language Server Protocol for intelligent code features
+;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
+;; SETUP NOTES:
+;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
+;; - Bash: Install bash-language-server with: npm install -g bash-language-server
+;; - Python: Jedi is preferred (containerized), pyright as fallback
 (use-package lsp-mode
-  :init (setq lsp-keymap-prefix "C-c l"
-              lsp-enable-snippet t
-              lsp-idle-delay 0.3
-              lsp-warn-no-matched-clients nil)
+  :init
+  (setq lsp-keymap-prefix "C-c l"
+        lsp-enable-snippet t
+        lsp-idle-delay 0.3
+        lsp-warn-no-matched-clients nil
+        ;; Improve LSP completion integration with corfu
+        lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
   :hook ((python-mode . my/python-lsp-setup)
          (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
          (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
@@ -347,33 +353,7 @@
         (push '(lsp-capf (styles orderless)) completion-category-defaults)))))
 (add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
 
-;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
-(defun my/setup-python-lsp ()
-  "Setup Python LSP with Jedi or fallback to pyright."
-  (let ((jedi-server (my/find-jedi-language-server))
-        (pylsp-server (my/find-pylsp-server)))
-    (cond
-     ;; Prefer Jedi Language Server
-     (jedi-server
-      (message "[LSP] Using Jedi Language Server: %s" jedi-server)
-      (setq-local lsp-jedi-language-server-command jedi-server)
-      (require 'lsp-jedi nil t)
-      (lsp))
-     ;; Fallback to Python LSP Server with Jedi
-     (pylsp-server
-      (message "[LSP] Using Python LSP Server: %s" pylsp-server)
-      (setq-local lsp-pylsp-server-command pylsp-server)
-      (require 'lsp-pylsp nil t)
-      (lsp))
-     ;; Final fallback to pyright
-     ((executable-find "pyright")
-      (message "[LSP] Using Pyright fallback")
-      (require 'lsp-pyright nil t)
-      (lsp))
-     (t
-      (message "[LSP] No Python language server found. Install Jedi with: ./scripts/deploy-jedi.sh")))))
-
-;; --- Jedi Language Server Configuration ---
+;; --- Jedi Language Server Configuration (optional) ---
 (use-package lsp-jedi
   :straight (:host github :repo "fredcamps/lsp-jedi")
   :after lsp-mode
@@ -386,6 +366,7 @@
         lsp-jedi-signature-help-enabled t
         lsp-jedi-symbols-enabled t))
 
+;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 
 ;; --- Git ---
@@ -413,15 +394,6 @@
   (setq project-vc-extra-root-markers '(".git" ".hg")))
 
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
-
-;; --- Vterm (real terminal emulator) ---
-(use-package vterm
-  :commands vterm
-  :bind (("C-c t" . vterm)
-         ("C-c T" . vterm-other-window))
-  :config
-  (setq vterm-max-scrollback 10000)
-  (setq vterm-kill-buffer-on-exit t))
 
 ;; --- Treemacs ---
 (use-package treemacs
@@ -534,8 +506,14 @@ Returns the parsed JSON response or signals an error on failure."
           (message "Failed to add context directory")))
     (error (message "Failed to add context directory: %s" err))))
 
-;; Auto-start IDE server on Emacs startup
-(add-hook 'emacs-startup-hook #'ide-server-start)
+;; Auto-start IDE server on Emacs startup (with error protection)
+(defun my/safe-ide-server-start ()
+  "Safely start IDE server, catching any errors."
+  (condition-case err
+      (ide-server-start)
+    (error (message "IDE Server failed to start: %s" err))))
+
+(add-hook 'emacs-startup-hook #'my/safe-ide-server-start)
 
 ;; IDE Server keybindings
 (global-set-key (kbd "C-c i c") #'ide-server-chat-send)
@@ -587,7 +565,9 @@ Returns the parsed JSON response or signals an error on failure."
 (defun my/open-side-panels ()
   "Auto-open panels on startup - using new IDE layout."
   (when (not noninteractive)
-    (my/setup-ide-layout)))
+    (condition-case err
+        (my/setup-ide-layout)
+      (error (message "Failed to setup IDE layout: %s" err)))))
 
 (add-hook 'emacs-startup-hook #'my/open-side-panels)
 
@@ -814,7 +794,9 @@ Returns the parsed JSON response or signals an error on failure."
    (makunbound 'file-name-handler-alist-original)
    (message "✅ Emacs startup optimization complete")))
 
-;; --- Suppress end-of-file warnings ---
-(setq warning-suppress-types '((initialization)))
+;; --- Suppress warnings and improve error handling ---
+(setq warning-suppress-types '((initialization) (package-cl-lib)))
+(setq warning-minimum-level :error)  ; Only show actual errors, not warnings
+(setq byte-compile-warnings '(not obsolete))
 
-(message "Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
+(message "✅ Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
