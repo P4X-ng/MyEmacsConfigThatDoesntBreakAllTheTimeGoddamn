@@ -746,7 +746,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  - Line highlighting and bracket matching\n")
     (princ "  - Smart completion with ivy/counsel/swiper\n")
     (princ "  - Real terminal experience with vterm\n")
-    (princ "  - Enhanced project management\n")))
+    (princ "  - Enhanced project management\n\n")
     (princ "Python LSP (Jedi):\n")
     (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
     (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
