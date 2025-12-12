@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/jedi/venv/bin/python3
 """
 Jedi Language Server Wrapper
 Ensures reliable Jedi operation in any environment
@@ -7,10 +7,6 @@ import sys
 import os
 import json
 from pathlib import Path
-
-# Add jedi libs to Python path
-jedi_lib_path = Path(__file__).parent.parent / "lib"
-sys.path.insert(0, str(jedi_lib_path))
 
 # Set up environment
 os.environ["JEDI_CACHE_DIRECTORY"] = str(Path.home() / ".cache" / "jedi")

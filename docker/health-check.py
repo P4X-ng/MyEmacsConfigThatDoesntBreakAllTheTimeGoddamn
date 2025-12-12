@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/jedi/venv/bin/python3
 """
 Jedi Health Check Script
 Validates that Jedi and related tools are working correctly
@@ -64,18 +64,15 @@ def main():
     
     # Get the jedi installation path
     jedi_path = Path(__file__).parent.parent
-    lib_path = jedi_path / "lib"
+    venv_path = jedi_path / "venv"
     bin_path = jedi_path / "bin"
     config_path = jedi_path / "config"
     
     print(f"📁 Jedi Path: {jedi_path}")
-    print(f"📁 Lib Path: {lib_path}")
+    print(f"📁 Virtual Env Path: {venv_path}")
     print(f"📁 Bin Path: {bin_path}")
     print(f"📁 Config Path: {config_path}")
     print()
-    
-    # Add lib path to Python path
-    sys.path.insert(0, str(lib_path))
     
     checks_passed = 0
     total_checks = 0
