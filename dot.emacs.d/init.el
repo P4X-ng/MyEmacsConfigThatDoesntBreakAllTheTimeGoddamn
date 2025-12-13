@@ -423,7 +423,7 @@
   (setq treemacs-width 30
         treemacs-follow-mode nil
         treemacs-filewatch-mode nil
-        treemacs-fringe-indicator-mode 'always
+        treemacs-fringe-indicator-mode t
         treemacs-git-mode nil
         treemacs-project-follow-mode nil
         treemacs-project-follow-cleanup nil
@@ -663,7 +663,7 @@ Returns the parsed JSON response or signals an error on failure."
             (call-process "clang-format" nil nil nil "-i" file)))
          ((derived-mode-p 'typescript-mode 'js2-mode 'js-mode)
           (when (executable-find "prettier")
-            (call-process "prettier" nil nil nil "--write" file)))))
+            (call-process "prettier" nil nil nil "--config-precedence" "file-override" "--write" file)))))
       ;; Reload the now-formatted file without prompts
       (revert-buffer :ignore-auto :noconfirm))))
 
