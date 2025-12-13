@@ -18,6 +18,14 @@ sudo apt update
 sudo apt install -y nodejs npm
 ```
 
+## Supported Languages
+
+This configuration provides intelligent autocompletions for:
+- **C/C++** (via clangd)
+- **Bash/Shell** (via bash-language-server)
+- **TypeScript/JavaScript** (via typescript-language-server)
+- **Python** (handled separately via Jedi in containerized environment)
+
 ## Language Server Installation
 
 ### C/C++ (clangd)
@@ -44,6 +52,25 @@ sudo npm install -g bash-language-server
 
 # Verify installation
 bash-language-server --version
+```
+
+### TypeScript/JavaScript (typescript-language-server)
+
+```bash
+# Install TypeScript language server
+sudo npm install -g typescript-language-server typescript
+
+# Verify installation
+typescript-language-server --version
+tsc --version
+```
+
+**Optional**: Install prettier for auto-formatting TypeScript/JavaScript files:
+```bash
+sudo npm install -g prettier
+
+# Verify installation
+prettier --version
 ```
 
 ## How It Works
@@ -110,6 +137,27 @@ int main() {
    - Built-in commands
    - Variables
    - Functions
+
+### Test TypeScript Completion
+
+1. Create a test file: `test.ts`
+2. Type the following:
+
+```typescript
+interface User {
+  name: string;
+  age: number;
+}
+
+const user: User = {
+  // Type 'na' and you should see 'name' completion
+  name: "Alice",
+  age: 30
+};
+
+// Type 'user.' and you should see name and age completions
+user.
+```
 
 ## Troubleshooting
 
