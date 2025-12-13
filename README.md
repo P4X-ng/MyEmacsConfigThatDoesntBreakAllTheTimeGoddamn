@@ -245,8 +245,9 @@ See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 ### 💻 Language Support
 - **C/C++**: clangd language server with full IDE features
 - **Bash**: bash-language-server for shell scripts
+- **TypeScript/JavaScript**: typescript-language-server with full IDE features
 - **Python**: Jedi (handled separately in containerized environment)
-- **Auto-formatting**: Supports clang-format (C/C++), shfmt (Bash)
+- **Auto-formatting**: Supports clang-format (C/C++), shfmt (Bash), prettier (TypeScript/JavaScript)
 
 ### 🛠️ Development Tools
 - **Syntax Checking**: Real-time with Flycheck
@@ -294,8 +295,14 @@ sudo apt install -y nodejs npm
 # C/C++ language server
 sudo apt install -y clangd
 
-# Bash language server (optional)
+# Bash language server
 sudo npm install -g bash-language-server
+
+# TypeScript/JavaScript language server
+sudo npm install -g typescript-language-server typescript
+
+# Optional: Code formatters
+sudo npm install -g prettier  # For TypeScript/JavaScript
 ```
 
 **Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
@@ -319,8 +326,9 @@ First launch will install all packages automatically (takes a few minutes).
 Try the demo files to see autocompletion in action:
 
 ```bash
-emacs examples/demo_c.c        # C examples
-emacs examples/demo_bash.sh    # Bash examples
+emacs examples/demo_c.c            # C examples
+emacs examples/demo_bash.sh        # Bash examples
+emacs examples/demo_typescript.ts  # TypeScript examples
 ```
 
 **Note**: Python demo is not included as Python autocompletion is handled separately via Jedi.

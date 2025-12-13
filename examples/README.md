@@ -8,18 +8,22 @@ This directory contains example files to test and demonstrate the autocompletion
 
 - **demo_c.c** - C example showing standard library, struct members, and custom function completions
 - **demo_bash.sh** - Bash script example showing commands, variables, and function completions
+- **demo_typescript.ts** - TypeScript example showing types, interfaces, classes, and async/await completions
 
 ## How to Use
 
 1. Make sure you've installed the language servers as described in `AUTOCOMPLETE_SETUP.md`:
   - C/C++: `sudo apt install -y clangd`
   - Bash: `sudo npm install -g bash-language-server`
+  - TypeScript/JavaScript: `sudo npm install -g typescript-language-server typescript`
 
 2. Open any of these demo files in Emacs:
    ```bash
    emacs examples/demo_c.c
    # or
    emacs examples/demo_bash.sh
+   # or
+   emacs examples/demo_typescript.ts
    ```
 
 3. Try typing the suggestions in the comments:
@@ -42,6 +46,12 @@ This directory contains example files to test and demonstrate the autocompletion
 - Type function names - should complete to `calculate_sum`
 - Common commands should autocomplete
 
+### TypeScript (demo_typescript.ts)
+- Type `user.` - should show object properties (id, name, email, isActive)
+- Type `calc.` - should show class methods (add, subtract, multiply, divide)
+- Type `Math.` - should show built-in Math methods
+- Type partial function names - should complete to full function names
+
 ## Troubleshooting
 
 If completions don't appear:
@@ -52,8 +62,9 @@ If completions don't appear:
 
 2. Verify language server is installed:
    ```bash
-   which clangd   # for C
-   which bash-language-server  # for Bash
+   which clangd                    # for C
+   which bash-language-server      # for Bash
+   which typescript-language-server # for TypeScript
    ```
 
 3. Check the `*Messages*` buffer in Emacs (`M-x messages`) for errors

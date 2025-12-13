@@ -325,6 +325,7 @@
 ;; SETUP NOTES:
 ;; - C/C++: Install clangd (Ubuntu 24.04: sudo apt install clangd)
 ;; - Bash: Install bash-language-server with: npm install -g bash-language-server
+;; - TypeScript/JavaScript: Install typescript-language-server with: npm install -g typescript-language-server typescript
 ;; - Python: Jedi is preferred (containerized), pyright as fallback
 (use-package lsp-mode
   :init
@@ -342,7 +343,10 @@
          (c-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (c++-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
          (f90-mode . (lambda () (when (executable-find "fortls") (lsp))))
-         (fortran-mode . (lambda () (when (executable-find "fortls") (lsp)))))
+         (fortran-mode . (lambda () (when (executable-find "fortls") (lsp))))
+         (typescript-mode . (lambda () (when (executable-find "typescript-language-server") (lsp))))
+         (js2-mode . (lambda () (when (executable-find "typescript-language-server") (lsp))))
+         (js-mode . (lambda () (when (executable-find "typescript-language-server") (lsp)))))
   :commands lsp)
 
 ;; Configure LSP completion to work seamlessly with corfu
@@ -384,6 +388,20 @@
   :mode (("\\.f90\\'" . f90-mode)
          ("\\.f95\\'" . f90-mode)))
 
+;; --- TypeScript/JavaScript ---
+(use-package typescript-mode
+  :mode (("\\.ts\\'" . typescript-mode)
+         ("\\.tsx\\'" . typescript-mode))
+  :config
+  (setq typescript-indent-level 2))
+
+(use-package js2-mode
+  :mode (("\\.js\\'" . js2-mode)
+         ("\\.jsx\\'" . js2-mode))
+  :config
+  (setq js2-basic-offset 2
+        js2-bounce-indent-p nil))
+
 ;; --- pf-mode (Custom) ---
 (load (expand-file-name "pf-mode.el" user-emacs-directory))
 
@@ -397,10 +415,26 @@
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
 ;; --- Treemacs ---
+;; Simple directory browser on the left - no project management
 (use-package treemacs
   :defer t
   :bind (("<f8>" . treemacs))
-  :config (setq treemacs-width 30))
+  :config
+  (setq treemacs-width 30
+        treemacs-follow-mode nil
+        treemacs-filewatch-mode nil
+        treemacs-fringe-indicator-mode 'always
+        treemacs-git-mode nil
+        treemacs-project-follow-mode nil
+        treemacs-project-follow-cleanup nil
+        treemacs-collapse-dirs 0
+        treemacs-silent-refresh t
+        treemacs-silent-filewatch t
+        treemacs-show-hidden-files t
+        treemacs-is-never-other-window t
+        treemacs-sorting 'alphabetic-asc
+        treemacs-show-cursor nil
+        treemacs-eldoc-display t))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -614,7 +648,7 @@ Returns the parsed JSON response or signals an error on failure."
 
 (defun my/format-buffer-after-save ()
   (when (and buffer-file-name
-             (or (derived-mode-p 'python-mode 'bash-mode 'sh-mode 'c-mode 'c++-mode 'c-ts-mode 'c++-ts-mode)))
+             (or (derived-mode-p 'python-mode 'bash-mode 'sh-mode 'c-mode 'c++-mode 'c-ts-mode 'c++-ts-mode 'typescript-mode 'js2-mode 'js-mode)))
     (save-excursion
       (let ((file buffer-file-name))
         (cond
@@ -626,7 +660,10 @@ Returns the parsed JSON response or signals an error on failure."
             (call-process "shfmt" nil nil nil "-w" file)))
          ((derived-mode-p 'c-mode 'c++-mode 'c-ts-mode 'c++-ts-mode)
           (when (executable-find "clang-format")
-            (call-process "clang-format" nil nil nil "-i" file)))))
+            (call-process "clang-format" nil nil nil "-i" file)))
+         ((derived-mode-p 'typescript-mode 'js2-mode 'js-mode)
+          (when (executable-find "prettier")
+            (call-process "prettier" nil nil nil "--write" file)))))
       ;; Reload the now-formatted file without prompts
       (revert-buffer :ignore-auto :noconfirm))))
 
@@ -751,6 +788,9 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "Python LSP (Jedi):\n")
     (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
     (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
+    (princ "TypeScript/JavaScript LSP:\n")
+    (princ "  TypeScript and JavaScript auto-detected\n")
+    (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
