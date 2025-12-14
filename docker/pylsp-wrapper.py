@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/jedi/venv/bin/python3
 """
 Python LSP Server Wrapper with Jedi Integration
 Ensures reliable Python language server operation
@@ -7,10 +7,6 @@ import sys
 import os
 import json
 from pathlib import Path
-
-# Add jedi libs to Python path
-jedi_lib_path = Path(__file__).parent.parent / "lib"
-sys.path.insert(0, str(jedi_lib_path))
 
 # Set up environment
 os.environ["PYLSP_CACHE_DIRECTORY"] = str(Path.home() / ".cache" / "pylsp")
