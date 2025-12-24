@@ -62,4 +62,4 @@ The repository is clean of `.pf` task files. The `pf-mode.el` file is functionin
 
 - Issue: "pf task check"
 - Grammar reference: P4X-ng/pf-web-poly-compile-helper-runner
-- Rules: `rules.json` lines 240-241 specify "ALL PF FILES MUST BE TESTED BEFORE YOU STOP WORKING"
+- Rules: `rules.json` line 240 specifies "ALL PF FILES MUST BE TESTED BEFORE YOU STOP WORKING"
