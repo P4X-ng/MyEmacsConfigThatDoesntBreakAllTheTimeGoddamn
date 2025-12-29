@@ -11,14 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CODE_OF_CONDUCT.md with community guidelines (2025-12-29)
 - SECURITY.md with security policy and vulnerability reporting (2025-12-29)
 
-## [1.0.1] - 2024-12-15
-
-### Added
-- CONTRIBUTING.md with contribution guidelines
-- LICENSE.md with MIT license
-- CHANGELOG.md for tracking changes
-- Comprehensive usage documentation in README.md
-
 ## [1.0.0] - 2024-12-08
 
 ### Added
