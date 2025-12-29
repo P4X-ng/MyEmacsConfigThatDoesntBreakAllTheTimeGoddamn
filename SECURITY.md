@@ -85,7 +85,7 @@ Security-related updates will be:
 ## Additional Resources
 
 - [Emacs Security](https://www.gnu.org/software/emacs/manual/html_node/emacs/Security.html)
-- [straight.el Security](https://github.com/raxod502/straight.el#security)
+- [straight.el Security](https://github.com/radian-software/straight.el#security)
 - [LSP Mode Security Considerations](https://emacs-lsp.github.io/lsp-mode/page/security/)
 
 ---
