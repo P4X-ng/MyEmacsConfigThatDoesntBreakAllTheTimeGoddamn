@@ -20,6 +20,8 @@ WORKDIR /home/jedi
 # Create jedi deployment structure
 # Note: We create bin/ and config/ directories, but NOT lib/ since we use a venv
 # All Python packages will be installed into the venv, not copied from anywhere
+# This fixes the "cp: target '/opt/jedi/lib/': No such file or directory" error
+# that occurred in older versions when trying to copy files to a non-existent directory
 RUN mkdir -p /opt/jedi/bin /opt/jedi/config
 
 # Create a dedicated virtual environment for all Jedi dependencies

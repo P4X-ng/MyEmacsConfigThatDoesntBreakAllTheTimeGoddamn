@@ -73,7 +73,7 @@ else
     echo ""
     echo "💡 Troubleshooting tips:"
     echo "   1. Try clearing Docker cache: docker builder prune -af"
-    echo "   2. Rebuild with --no-cache flag: $0 --no-cache"
+    echo "   2. Rebuild with --no-cache flag: ./scripts/build-jedi.sh --no-cache"
     echo "   3. Check Docker logs above for specific errors"
     echo ""
     exit 1

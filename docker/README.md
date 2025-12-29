@@ -45,7 +45,7 @@ docker build --no-cache -t reliable-jedi:latest .
 
 ## Troubleshooting
 
-### Build Fails with "No such file or directory" 
+### "No such file or directory" Build Error 
 If you see errors like:
 ```
 cp: target '/opt/jedi/lib/': No such file or directory
