@@ -118,9 +118,11 @@ fi
 if [ -f "$VENV_ACTIVATE" ]; then
     echo "🔧 Adding Jedi to venv activation..."
     if ! grep -q "activate-jedi.sh" "$VENV_ACTIVATE"; then
-        echo "" >> "$VENV_ACTIVATE"
-        echo "# Activate Jedi" >> "$VENV_ACTIVATE"
-        echo "source \"$ACTIVATION_SCRIPT\"" >> "$VENV_ACTIVATE"
+        {
+            echo ""
+            echo "# Activate Jedi"
+            echo "source \"$ACTIVATION_SCRIPT\""
+        } >> "$VENV_ACTIVATE"
     fi
 fi
 
