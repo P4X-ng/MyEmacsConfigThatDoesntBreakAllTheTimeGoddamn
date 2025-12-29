@@ -106,14 +106,15 @@ After installation, you can start using Emacs with this configuration immediatel
 ### Basic Workflow
 
 1. **Start Emacs**: Simply run `emacs` from your terminal or launch the GUI application
-2. **Open Files**: Use `C-x C-f` or `C-c C-p` for quick file opening
+2. **Open Files**: Use `C-x C-f` (standard Emacs) or `C-c C-p` (VSCode-like quick open) for file opening
 3. **File Explorer**: Press `F8` to toggle the Treemacs file explorer sidebar
 4. **Start Coding**: Open any supported file type (Python, C/C++, Bash, TypeScript/JavaScript) and LSP will activate automatically
 
 ### Daily Usage
 
 **Opening and Editing Files**:
-- Use `C-x C-f` to open files with enhanced completion
+- Use `C-x C-f` to open files with enhanced completion (standard Emacs)
+- Use `C-c C-p` for quick file opening (VSCode-like fuzzy finder)
 - Press `F8` to browse files in Treemacs sidebar
 - Use tabs (`M-t` for new tab, `M-←`/`M-→` to switch) to manage multiple files
 
