@@ -143,7 +143,7 @@ class ContextManager:
             self.context_dirs.append(default_dir)
         logger.info(f"ContextManager initialized with {len(self.context_dirs)} directories")
     
-    def _is_safe_path(self, path: str) -> bool:
+    def _is_safe_path(self, path: str, must_be_dir: bool = True) -> bool:
         """
         Validate that a path is safe to access.
         
@@ -154,6 +154,7 @@ class ContextManager:
         
         Args:
             path: The path to validate
+            must_be_dir: If True, path must be a directory
             
         Returns:
             True if the path is safe, False otherwise
@@ -162,12 +163,19 @@ class ContextManager:
             # Resolve to absolute path and check for path traversal
             resolved = Path(path).resolve()
             
-            # Check if it's a real path (not a symlink to dangerous location)
+            # Path must exist to be considered safe
             if not resolved.exists():
-                # It's okay if it doesn't exist yet for creation
-                resolved = resolved.parent.resolve()
+                logger.warning(f"Path does not exist: {path}")
+                return False
             
-            # Prevent access to system directories
+            # Check directory requirement if specified
+            if must_be_dir and not resolved.is_dir():
+                logger.warning(f"Path is not a directory: {path}")
+                return False
+            
+            # Prevent access to system directories using blacklist
+            # Note: This is a defense-in-depth measure. Consider using
+            # a whitelist approach for production systems.
             dangerous_paths = [
                 Path('/etc'),
                 Path('/sys'),
@@ -175,12 +183,45 @@ class ContextManager:
                 Path('/dev'),
                 Path('/root'),
                 Path('/boot'),
+                Path('/var/log'),
+                Path('/usr/bin'),
+                Path('/usr/sbin'),
+                Path('/sbin'),
+                Path('/bin'),
             ]
             
             for dangerous in dangerous_paths:
-                if resolved.is_relative_to(dangerous):
-                    logger.warning(f"Blocked access to dangerous path: {resolved}")
-                    return False
+                try:
+                    if resolved.is_relative_to(dangerous):
+                        logger.warning(f"Blocked access to dangerous path: {resolved}")
+                        return False
+                except ValueError:
+                    # is_relative_to raises ValueError if paths are on different drives (Windows)
+                    continue
+            
+            # Additional check: ensure path is under user's home or common safe locations
+            home = Path.home()
+            safe_base_paths = [
+                home,
+                Path('/opt'),
+                Path('/usr/local'),
+                Path('/var/www'),
+                Path('/tmp'),  # Allowed for temporary working directories
+            ]
+            
+            # Check if path is under any safe base path
+            is_under_safe_path = False
+            for safe_path in safe_base_paths:
+                try:
+                    if resolved.is_relative_to(safe_path):
+                        is_under_safe_path = True
+                        break
+                except ValueError:
+                    continue
+            
+            if not is_under_safe_path:
+                logger.warning(f"Path not under any safe base path: {resolved}")
+                return False
             
             return True
         except (ValueError, OSError, RuntimeError) as e:
@@ -282,18 +323,13 @@ class ContextManager:
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     
                     for file in files:
-                        # Skip hidden files and binary files
+                        # Skip hidden files and binary files by extension first (performance)
                         if file.startswith('.') or file.endswith(excluded_extensions):
                             continue
                         
                         filepath = os.path.join(root, file)
                         
-                        # Security check: validate file path
-                        if not self._is_safe_path(filepath):
-                            logger.warning(f"Skipping unsafe file path: {filepath}")
-                            continue
-                        
-                        # Check file size before reading
+                        # Check file size before validating path (performance optimization)
                         try:
                             file_size = os.path.getsize(filepath)
                             if file_size > MAX_FILE_SIZE:
@@ -302,11 +338,17 @@ class ContextManager:
                         except OSError:
                             continue
                         
+                        # Security check: validate file path (less frequent now)
+                        if not self._is_safe_path(filepath, must_be_dir=False):
+                            logger.warning(f"Skipping unsafe file path: {filepath}")
+                            continue
+                        
                         file_match_counts[filepath] = 0
                         
                         try:
-                            # Safe file reading with encoding handling
-                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            # Safe file reading with proper encoding error handling
+                            # Using 'replace' instead of 'ignore' to maintain data integrity
+                            with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
                                 for line_num, line in enumerate(f, 1):
                                     # Limit line length to prevent memory issues
                                     if len(line) > 1000:
