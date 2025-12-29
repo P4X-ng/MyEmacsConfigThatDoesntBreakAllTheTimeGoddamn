@@ -70,6 +70,12 @@ if docker build "${BUILD_ARGS[@]}" -t "$IMAGE_NAME:$IMAGE_TAG" .; then
     echo "✅ Successfully built $IMAGE_NAME:$IMAGE_TAG"
 else
     echo "❌ Failed to build Docker image"
+    echo ""
+    echo "💡 Troubleshooting tips:"
+    echo "   1. Try clearing Docker cache: docker builder prune -af"
+    echo "   2. Rebuild with --no-cache flag: $0 --no-cache"
+    echo "   3. Check Docker logs above for specific errors"
+    echo ""
     exit 1
 fi
 

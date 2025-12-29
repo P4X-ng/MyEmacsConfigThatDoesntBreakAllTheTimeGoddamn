@@ -477,10 +477,18 @@ For technical details, see [FIXES.md](FIXES.md).
 
 This repository provides a bulletproof, containerized Jedi setup that can be reliably deployed to any Python virtual environment.
 
+## 🔒 Fully Self-Contained
+
+The Jedi container is **completely self-contained** and does NOT rely on any packages from your host system:
+- All Python packages are installed fresh from PyPI into the container
+- No dependencies on host's `/usr/local/lib/` or system Python
+- Reproducible builds with pinned package versions
+- Works the same way on any machine with Docker
+
 ## Quick Start
 
 ```bash
-# Build the Jedi container
+# Build the self-contained Jedi container
 ./scripts/build-jedi.sh
 
 # Deploy to your current venv
@@ -496,30 +504,52 @@ This repository provides a bulletproof, containerized Jedi setup that can be rel
 - **Turnkey Deployment**: One-command deployment to any virtual environment
 - **Emacs Integration**: Updated configuration for seamless Jedi integration
 - **Zero Installation Issues**: No more pip install headaches
+- **Complete Isolation**: No interference with your system Python or other projects
 
 ## Architecture
 
-1. **Docker Container**: Contains Jedi language server and all Python analysis tools
-2. **Deployment Scripts**: Copy/mount container contents into venv paths
+1. **Docker Container**: Contains Jedi language server and all Python analysis tools in an isolated venv
+2. **Deployment Scripts**: Extract and deploy container contents to host venv paths
 3. **Emacs Configuration**: Updated to use the containerized Jedi
 4. **Health Checks**: Automatic validation of Jedi functionality
 
 ## Files
 
-- `docker/`: Dockerfile and container configuration
+- `docker/`: Dockerfile and container configuration (see `docker/README.md` for details)
+- `jedi-container/`: Alternative simpler Jedi container setup
 - `scripts/`: Build and deployment scripts
 - `dot.emacs.d/`: Updated Emacs configuration with Jedi integration
-- `config/`: Jedi and language server configurations
 
 ## Requirements
 
-- Docker
-- Python virtual environments
-- Emacs (optional, but recommended)
+- Docker (or Podman)
+- That's it! No Python, pip, or other dependencies needed on host for building
 
 ## Troubleshooting
 
-If Jedi isn't working:
+### Build Failures
+
+If the build fails with errors like "No such file or directory":
+
+1. **Clear Docker cache** (recommended first step):
+   ```bash
+   docker builder prune -af
+   ./scripts/build-jedi.sh --no-cache
+   ```
+
+2. **Check Docker logs** for specific errors
+3. **Ensure Docker has internet access** to download packages from PyPI
+
+### Jedi Not Working After Deployment
+
+If Jedi isn't working after deployment:
 1. Run `./scripts/health-check.sh` to validate the installation
-2. Check `./logs/jedi.log` for error messages
-3. Rebuild with `./scripts/build-jedi.sh --force`
+2. Check `./logs/jedi.log` for error messages (if logs directory exists)
+3. Verify deployment: `ls -la ~/.venv/*/jedi/` or your specific venv path
+
+### Fresh Build
+
+Always use `--no-cache` when troubleshooting build issues to ensure a completely fresh build:
+```bash
+./scripts/build-jedi.sh --no-cache
+```
