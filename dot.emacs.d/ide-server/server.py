@@ -18,6 +18,15 @@ import threading
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+# Security configuration constants
+FORBIDDEN_PATH_PREFIXES = tuple(
+    os.environ.get('FORBIDDEN_PATH_PREFIXES', '/etc:/sys:/proc:/dev:/boot').split(':')
+)
+
+# Rate limiting configuration from environment
+RATE_LIMIT_MAX_REQUESTS = int(os.environ.get('IDE_SERVER_MAX_REQUESTS', '100'))
+RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get('IDE_SERVER_RATE_LIMIT_WINDOW', '60'))
+
 # Global shared state with thread safety
 _chat_manager = None
 _context_manager = None
@@ -175,21 +184,40 @@ class ContextManager:
             self.context_dirs.append(default_dir)
     
     def add_context_dir(self, path: str) -> bool:
-        """Add a context directory."""
-        # Security: Sanitize path to prevent directory traversal
-        if not path or '..' in path or path.startswith('/etc') or path.startswith('/sys'):
+        """Add a context directory with robust security validation."""
+        # Security: Basic validation
+        if not path or not path.strip():
             return False
         
-        expanded = os.path.abspath(os.path.expanduser(path))
-        
-        # Security: Ensure path is a real directory and not a symlink to sensitive location
-        if os.path.isdir(expanded) and expanded not in self.context_dirs:
-            # Additional check: Don't allow system directories
-            forbidden_prefixes = ('/etc', '/sys', '/proc', '/dev', '/boot')
-            if not expanded.startswith(forbidden_prefixes):
-                self.context_dirs.append(expanded)
-                return True
-        return False
+        try:
+            # Normalize and expand the path
+            expanded = os.path.abspath(os.path.expanduser(path.strip()))
+            normalized = os.path.normpath(expanded)
+            
+            # Security: Check for directory traversal attempts
+            # Ensure the normalized path doesn't contain '..'
+            if '..' in os.path.relpath(normalized, '/'):
+                return False
+            
+            # Security: Verify it's a real directory (not symlink to forbidden location)
+            if not os.path.isdir(normalized):
+                return False
+            
+            # Security: Prevent duplicate entries
+            if normalized in self.context_dirs:
+                return False
+            
+            # Security: Block access to system directories
+            if normalized.startswith(FORBIDDEN_PATH_PREFIXES):
+                return False
+            
+            # All checks passed - add the directory
+            self.context_dirs.append(normalized)
+            return True
+            
+        except (ValueError, OSError):
+            # Handle any path resolution errors
+            return False
     
     def remove_context_dir(self, path: str) -> bool:
         """Remove a context directory."""
@@ -211,13 +239,15 @@ class ContextManager:
         
         query = query.strip()
         
-        # Security: Prevent abuse with overly long queries or special characters
+        # Security: Prevent abuse with overly long queries
         if len(query) > 1000:
             return "Query too long. Maximum 1000 characters."
         
-        # Security: Block queries with null bytes or other dangerous patterns
-        if '\x00' in query or '\n' in query or '\r' in query:
-            return "Invalid characters in query."
+        # Security: Block dangerous characters that could be used for command injection
+        # if the query were ever passed to shell (defense in depth)
+        dangerous_chars = ['\x00', '\n', '\r', ';', '|', '&', '`', '$', '(', ')', '<', '>']
+        if any(char in query for char in dangerous_chars):
+            return "Invalid characters in query. Alphanumeric and basic punctuation only."
         
         if not self.context_dirs:
             return "No context directories configured. Use /context/add to add directories."
@@ -309,7 +339,11 @@ class IDERequestHandler(BaseHTTPRequestHandler):
         if _rate_limiter is None:
             with _state_lock:
                 if _rate_limiter is None:
-                    _rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
+                    # Use configuration from environment variables
+                    _rate_limiter = RateLimiter(
+                        max_requests=RATE_LIMIT_MAX_REQUESTS,
+                        window_seconds=RATE_LIMIT_WINDOW_SECONDS
+                    )
         return _rate_limiter
     
     def _check_rate_limit(self) -> bool:
