@@ -24,4 +24,10 @@ projectile-bookmarks.eld
 .docker
 *.log
 sync-local.sh
-*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
