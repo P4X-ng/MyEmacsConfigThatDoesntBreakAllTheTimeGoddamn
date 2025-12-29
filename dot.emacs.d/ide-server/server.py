@@ -18,12 +18,7 @@ from datetime import datetime
 import logging
 from pathlib import Path
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# Module logger - configure at module level for simple server
 logger = logging.getLogger(__name__)
 
 # Constants for security and performance
@@ -33,6 +28,8 @@ MAX_RESULTS_PER_FILE = 3  # Maximum matches per file
 MAX_DIRECTORY_DEPTH = 5  # Maximum directory traversal depth
 MAX_MESSAGE_LENGTH = 10000  # Maximum message length
 MAX_CONTEXT_DIRS = 10  # Maximum number of context directories
+MAX_REQUEST_SIZE = 1024 * 1024  # 1MB max HTTP request body size
+MAX_FILES_TO_PROCESS = 100  # Maximum files to process in search
 
 # Global shared state with thread safety
 _chat_manager = None
@@ -259,7 +256,6 @@ class ContextManager:
         results = []
         file_match_counts = {}  # Track matches per file for efficiency
         files_processed = 0
-        max_files_to_process = 100  # Limit number of files to prevent DoS
         
         logger.info(f"Searching for '{query}' in {len(self.context_dirs)} directories")
         
@@ -335,8 +331,8 @@ class ContextManager:
                         files_processed += 1
                         
                         # Limit total files processed
-                        if files_processed >= max_files_to_process:
-                            logger.info(f"Reached max files to process ({max_files_to_process})")
+                        if files_processed >= MAX_FILES_TO_PROCESS:
+                            logger.info(f"Reached max files to process ({MAX_FILES_TO_PROCESS})")
                             break
                         
                         # Limit total results
@@ -405,9 +401,8 @@ class IDERequestHandler(BaseHTTPRequestHandler):
             return {}
         
         # Prevent large payload attacks
-        max_content_length = 1024 * 1024  # 1MB
-        if content_length > max_content_length:
-            raise ValueError(f"Request body too large: {content_length} bytes (max {max_content_length})")
+        if content_length > MAX_REQUEST_SIZE:
+            raise ValueError(f"Request body too large: {content_length} bytes (max {MAX_REQUEST_SIZE})")
         
         body = self.rfile.read(content_length)
         
@@ -553,6 +548,13 @@ class IDERequestHandler(BaseHTTPRequestHandler):
 
 def run_server(host: str = '127.0.0.1', port: int = 9999):
     """Run the IDE server."""
+    # Configure logging for the server
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
     server = HTTPServer((host, port), IDERequestHandler)
     logger.info(f"IDE Server starting on http://{host}:{port}")
     logger.info(f"Chat endpoint: http://{host}:{port}/chat/send")
