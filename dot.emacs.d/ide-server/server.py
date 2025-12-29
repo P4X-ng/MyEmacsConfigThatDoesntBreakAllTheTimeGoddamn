@@ -6,6 +6,7 @@ Provides:
 - Chat interface with LLM support
 - Context management
 - Simple HTTP JSON API for Emacs integration
+- Rate limiting for security
 """
 
 import json
@@ -14,12 +15,74 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, Any, List
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 # Global shared state with thread safety
 _chat_manager = None
 _context_manager = None
+_rate_limiter = None
 _state_lock = threading.Lock()
+
+
+class RateLimiter:
+    """Simple rate limiter to prevent abuse."""
+    
+    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
+        """
+        Initialize rate limiter.
+        
+        Args:
+            max_requests: Maximum requests allowed per window
+            window_seconds: Time window in seconds
+        """
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests = defaultdict(list)
+        self.lock = threading.Lock()
+    
+    def is_allowed(self, client_id: str) -> bool:
+        """
+        Check if request from client is allowed.
+        
+        Args:
+            client_id: Client identifier (usually IP address)
+            
+        Returns:
+            True if request is allowed, False if rate limit exceeded
+        """
+        with self.lock:
+            now = datetime.now()
+            cutoff = now - timedelta(seconds=self.window_seconds)
+            
+            # Remove old requests outside the window
+            self.requests[client_id] = [
+                req_time for req_time in self.requests[client_id]
+                if req_time > cutoff
+            ]
+            
+            # Check if under limit
+            if len(self.requests[client_id]) < self.max_requests:
+                self.requests[client_id].append(now)
+                return True
+            
+            return False
+    
+    def get_stats(self, client_id: str) -> Dict[str, Any]:
+        """Get rate limit stats for a client."""
+        with self.lock:
+            now = datetime.now()
+            cutoff = now - timedelta(seconds=self.window_seconds)
+            recent_requests = [
+                req_time for req_time in self.requests[client_id]
+                if req_time > cutoff
+            ]
+            return {
+                "requests": len(recent_requests),
+                "max_requests": self.max_requests,
+                "window_seconds": self.window_seconds,
+                "remaining": max(0, self.max_requests - len(recent_requests))
+            }
 
 
 class ChatManager:
@@ -113,10 +176,19 @@ class ContextManager:
     
     def add_context_dir(self, path: str) -> bool:
         """Add a context directory."""
-        expanded = os.path.expanduser(path)
+        # Security: Sanitize path to prevent directory traversal
+        if not path or '..' in path or path.startswith('/etc') or path.startswith('/sys'):
+            return False
+        
+        expanded = os.path.abspath(os.path.expanduser(path))
+        
+        # Security: Ensure path is a real directory and not a symlink to sensitive location
         if os.path.isdir(expanded) and expanded not in self.context_dirs:
-            self.context_dirs.append(expanded)
-            return True
+            # Additional check: Don't allow system directories
+            forbidden_prefixes = ('/etc', '/sys', '/proc', '/dev', '/boot')
+            if not expanded.startswith(forbidden_prefixes):
+                self.context_dirs.append(expanded)
+                return True
         return False
     
     def remove_context_dir(self, path: str) -> bool:
@@ -133,6 +205,20 @@ class ContextManager:
     
     def search_context(self, query: str) -> str:
         """Search context directories for query using simple grep."""
+        # Security: Validate query input
+        if not query:
+            return "Empty query provided."
+        
+        query = query.strip()
+        
+        # Security: Prevent abuse with overly long queries or special characters
+        if len(query) > 1000:
+            return "Query too long. Maximum 1000 characters."
+        
+        # Security: Block queries with null bytes or other dangerous patterns
+        if '\x00' in query or '\n' in query or '\r' in query:
+            return "Invalid characters in query."
+        
         if not self.context_dirs:
             return "No context directories configured. Use /context/add to add directories."
         
@@ -216,6 +302,28 @@ class IDERequestHandler(BaseHTTPRequestHandler):
                     _context_manager = ContextManager()
         return _context_manager
     
+    @property
+    def rate_limiter(self):
+        """Get shared rate limiter instance."""
+        global _rate_limiter
+        if _rate_limiter is None:
+            with _state_lock:
+                if _rate_limiter is None:
+                    _rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
+        return _rate_limiter
+    
+    def _check_rate_limit(self) -> bool:
+        """Check if request should be rate limited."""
+        client_ip = self.client_address[0]
+        if not self.rate_limiter.is_allowed(client_ip):
+            stats = self.rate_limiter.get_stats(client_ip)
+            self._send_error_response(
+                f"Rate limit exceeded. Try again in {stats['window_seconds']} seconds.",
+                429
+            )
+            return False
+        return True
+    
     def log_message(self, format, *args):
         """Override to provide cleaner logging."""
         sys.stderr.write(f"[{self.log_date_time_string()}] {format % args}\n")
@@ -263,6 +371,10 @@ class IDERequestHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         """Handle POST requests."""
+        # Security: Check rate limit for all POST requests
+        if not self._check_rate_limit():
+            return
+        
         try:
             data = self._read_json_body()
         except json.JSONDecodeError:
