@@ -445,13 +445,13 @@ class IDERequestHandler(BaseHTTPRequestHandler):
         """Handle POST requests with input validation."""
         try:
             data = self._read_json_body()
-        except ValueError as e:
-            logger.warning(f"Invalid request body: {e}")
-            self._send_error_response(str(e))
-            return
         except json.JSONDecodeError as e:
             logger.warning(f"JSON decode error: {e}")
             self._send_error_response("Invalid JSON")
+            return
+        except ValueError as e:
+            logger.warning(f"Invalid request body: {e}")
+            self._send_error_response(str(e))
             return
         
         if self.path == '/chat/send':
@@ -535,7 +535,7 @@ class IDERequestHandler(BaseHTTPRequestHandler):
             try:
                 results = self.context_manager.search_context(query)
                 self._send_json_response({"results": results})
-            except Exception as e:
+            except (OSError, IOError, ValueError) as e:
                 logger.error(f"Error in context search: {e}")
                 self._send_error_response("Search failed")
         
