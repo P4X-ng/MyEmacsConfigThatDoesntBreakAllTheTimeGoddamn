@@ -37,9 +37,12 @@
       (straight-use-package 'use-package)
       (setq straight-use-package-by-default t))
   ;; Provide a no-op use-package macro if straight.el failed
-  (defmacro use-package (name &rest _args)
-    "Fallback no-op use-package when straight.el is not available."
-    `(message "Skipping package %s (straight.el not available)" ',name)))
+  (progn
+    (message "⚠️  WARNING: straight.el not available - packages will not be loaded!")
+    (message "⚠️  Emacs will run with limited functionality.")
+    (defmacro use-package (_name &rest _args)
+      "Fallback no-op use-package when straight.el is not available."
+      nil)))
 
 ;; --- Enhanced UI setup ---
 (when (fboundp 'menu-bar-mode)   (menu-bar-mode -1))
