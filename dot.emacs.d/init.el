@@ -37,11 +37,14 @@
       (straight-use-package 'use-package)
       (setq straight-use-package-by-default t))
   ;; Provide a no-op use-package macro if straight.el failed
+  ;; Note: We show warnings at startup (not per-package) to ensure users are
+  ;; aware of the problem while avoiding message spam from 33+ package declarations
   (progn
     (message "⚠️  WARNING: straight.el not available - packages will not be loaded!")
     (message "⚠️  Emacs will run with limited functionality.")
     (defmacro use-package (_name &rest _args)
-      "Fallback no-op use-package when straight.el is not available."
+      "Fallback no-op use-package when straight.el is not available.
+Silently ignores package declarations to avoid console spam."
       nil)))
 
 ;; --- Enhanced UI setup ---
