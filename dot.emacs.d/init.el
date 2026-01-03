@@ -10,6 +10,9 @@
 
 ;; --- Bootstrap straight.el ---
 (defvar bootstrap-version)
+(defvar straight-bootstrap-success nil
+  "Track whether straight.el was successfully bootstrapped.")
+
 (condition-case err
     (let ((bootstrap-file
            (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -20,13 +23,29 @@
              "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
              'silent 'inactive)
           (goto-char (point-max)) (eval-print-last-sexp)))
-      (load bootstrap-file nil 'nomessage))
+      (load bootstrap-file nil 'nomessage)
+      (setq straight-bootstrap-success t))
   (error 
    (message "Failed to bootstrap straight.el: %s" err)
-   (message "Please check your internet connection and try again.")))
+   (message "Please check your internet connection and try again.")
+   (message "Emacs will continue with limited functionality.")
+   (setq straight-bootstrap-success nil)))
 
-(straight-use-package 'use-package)
-(setq straight-use-package-by-default t)
+;; Only proceed with package management if straight.el loaded successfully
+(if straight-bootstrap-success
+    (progn
+      (straight-use-package 'use-package)
+      (setq straight-use-package-by-default t))
+  ;; Provide a no-op use-package macro if straight.el failed
+  ;; Note: We show warnings at startup (not per-package) to ensure users are
+  ;; aware of the problem while avoiding message spam from 33+ package declarations
+  (progn
+    (message "⚠️  WARNING: straight.el not available - packages will not be loaded!")
+    (message "⚠️  Emacs will run with limited functionality.")
+    (defmacro use-package (_name &rest _args)
+      "Fallback no-op use-package when straight.el is not available.
+Silently ignores package declarations to avoid console spam."
+      nil)))
 
 ;; --- Enhanced UI setup ---
 (when (fboundp 'menu-bar-mode)   (menu-bar-mode -1))
