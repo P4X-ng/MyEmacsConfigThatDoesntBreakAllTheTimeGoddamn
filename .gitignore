@@ -24,21 +24,10 @@ projectile-bookmarks.eld
 .docker
 *.log
 sync-local.sh
-*~
 
-# Environment variables (security)
-.env
-.env.local
-.env.*.local
-
-# Sensitive data
-*.key
-*.pem
-*.p12
-*.pfx
-secrets/
-
-# SQLite databases (may contain sensitive data)
-*.db
-*.sqlite
-*.sqlite3
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
