@@ -1,169 +1,93 @@
 # Security Policy
 
-## Overview
-
-This repository contains an Emacs configuration that includes various packages and integrations. While Emacs configurations themselves typically don't have traditional security vulnerabilities like web applications, there are still security considerations to be aware of.
-
 ## Supported Versions
 
-We support the latest version of the configuration. We recommend always using the latest commit from the `main` branch for the most up-to-date and secure configuration.
+This Emacs configuration is a personal project that is actively maintained. Security updates will be applied to the latest version on the `main` branch.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| Latest (main branch) | ✅ |
-| Older commits | ⚠️ Use at own risk |
+| Latest (main branch) | :white_check_mark: |
+| Older commits | :x: |
 
 ## Security Considerations
 
-### Package Security
+This repository contains an Emacs configuration with package management and language server integrations. While Emacs configurations themselves are typically low-risk, please be aware of the following:
 
-- **Package Sources**: We use `straight.el` to manage packages directly from Git repositories
-- **Package Updates**: Regularly update packages to get security fixes
-- **Trusted Sources**: All packages are sourced from reputable repositories (GNU ELPA, MELPA, GitHub)
+### Package Sources
+- This configuration uses `straight.el` to install packages from official repositories (GNU ELPA, MELPA, GitHub)
+- Packages are pulled from trusted sources, but you should review any modifications to package sources in `init.el`
 
-### Code Execution
+### Language Servers
+- The configuration integrates with external language servers (clangd, bash-language-server, pyright, etc.)
+- These are system-level installations, not managed by this repository
+- Keep your language servers updated through your system package manager
 
-- **Elisp Code**: Emacs configurations involve executing Elisp code
-- **Third-party Packages**: We only include well-maintained, widely-used packages
-- **Review Changes**: Always review configuration changes before applying them
-
-### API Keys and Credentials
-
-- **GPTel Integration**: If using the GPTel (AI/LLM) integration, API keys must be stored securely
-- **Never commit API keys**: Do not commit API keys or credentials to this repository
-- **Use Environment Variables**: Store sensitive credentials in environment variables or secure key stores
-- **Example**: Set GPTel API keys via environment variables or Emacs' `auth-sources`
-
-### Language Server Protocol (LSP)
-
-- **LSP Servers**: This configuration uses LSP servers (Pyright, clangd, bash-language-server)
-- **Network Communication**: LSP servers may communicate over network sockets
-- **Trust LSP Servers**: Only install LSP servers from trusted sources
-- **Workspace Trust**: Be cautious when opening untrusted projects with LSP enabled
+### External Tools
+- The configuration may interact with external tools (git, formatters, etc.)
+- Ensure these tools are from trusted sources and kept up to date
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in this configuration, please report it responsibly:
+If you discover a security vulnerability in this Emacs configuration, please report it by:
 
-### How to Report
-
-1. **Do NOT** open a public GitHub issue for security vulnerabilities
-2. **Do** report security issues by:
-   - Opening a private security advisory on GitHub (if available)
-   - Creating a regular issue with minimal details and requesting private communication
-   - Contacting the repository owner directly through GitHub
+1. **Do not** open a public issue for security vulnerabilities
+2. Open a private security advisory on GitHub by going to the "Security" tab and clicking "Report a vulnerability"
+3. Alternatively, create a private issue and mark it as a security concern
 
 ### What to Include
 
-When reporting a security vulnerability, please include:
+When reporting a security issue, please include:
 
-- **Description**: A clear description of the vulnerability
-- **Impact**: What could an attacker do with this vulnerability?
-- **Reproduction Steps**: Step-by-step instructions to reproduce the issue
-- **Affected Components**: Which parts of the configuration are affected?
-- **Suggested Fix**: If you have ideas for fixing the issue (optional)
-- **Your Contact Info**: How we can reach you for follow-up questions
+- Description of the vulnerability
+- Steps to reproduce the issue
+- Potential impact
+- Suggested fix (if you have one)
+- Your Emacs version and operating system
 
-### What to Expect
+### Response Time
 
-- **Acknowledgment**: We will acknowledge your report within 48 hours
-- **Investigation**: We will investigate and assess the severity of the issue
-- **Fix**: We will work on a fix and test it thoroughly
-- **Disclosure**: We will coordinate disclosure timing with you
-- **Credit**: You will be credited for the discovery (unless you prefer anonymity)
+As this is a personal project:
+- I will acknowledge receipt of your report within 48 hours
+- I will investigate and provide an initial assessment within 1 week
+- I will work to address confirmed vulnerabilities as quickly as possible
+- You will be notified when a fix is available
 
-## Security Best Practices
+## Security Best Practices for Users
 
-When using this Emacs configuration, follow these security best practices:
+When using this Emacs configuration:
 
-### For Users
-
-1. **Keep Updated**: Regularly update the configuration and packages
-   ```bash
-   cd ~/.emacs.d
-   git pull origin main
-   # In Emacs: M-x straight-pull-all
-   ```
-
-2. **Review Before Running**: Always review code before adding it to your configuration
-
-3. **Secure Your API Keys**: Never commit API keys or credentials
-   - Use environment variables
-   - Use Emacs' auth-sources (e.g., `~/.authinfo.gpg`)
-   - Use a password manager
-
-4. **Trust Your Workspace**: Be cautious when opening projects from untrusted sources
-
-5. **Use Secure Connections**: Ensure package sources use HTTPS
-
-### For Contributors
-
-1. **No Secrets**: Never commit API keys, passwords, or credentials
-
-2. **Secure Package Sources**: Only add packages from trusted, well-maintained sources
-
-3. **Code Review**: Review third-party code before integrating
-
-4. **Test Security**: Test configuration changes in a safe environment first
-
-5. **Document Security**: Document any security implications of new features
+1. **Review before use**: Read through `init.el` to understand what it does
+2. **Keep Emacs updated**: Use a recent version of Emacs (27.1+, 29+ recommended)
+3. **Update packages regularly**: Run `M-x straight-pull-all` periodically
+4. **Vet external tools**: Only install language servers and formatters from trusted sources
+5. **Use virtual environments**: For Python development, use virtual environments to isolate dependencies
+6. **Be cautious with eval**: Be careful when evaluating untrusted Emacs Lisp code
 
 ## Known Security Considerations
 
-### GPTel AI Integration
+### GPTel Integration
+- This configuration includes GPTel for ChatGPT integration
+- API keys should be stored securely (not committed to version control)
+- Be mindful of what code/data you send to external AI services
 
-- Requires API key for OpenAI or other LLM providers
-- API key must be stored securely (not in repository)
-- LLM requests send code/text to external services
-- Users should be aware of data privacy implications
-
-### LSP Servers
-
-- Execute external binaries (pyright, clangd, bash-language-server)
-- Communicate over local network sockets
-- Process workspace files
-- Should only be installed from official sources
-
-### External Dependencies
-
-This configuration relies on external tools:
-- **Emacs** itself (keep updated)
-- **LSP servers** (pyright, clangd, bash-language-server)
-- **Git** (for straight.el)
-- **Various system tools** (grep, find, etc.)
-
-Keep these dependencies updated for security patches.
+### File System Access
+- Emacs has full access to your file system
+- Be careful when opening files from untrusted sources
+- Review any code before evaluating it
 
 ## Security Updates
 
-When security issues are discovered and fixed:
-
-1. We will document them in the CHANGELOG.md
-2. We will update this SECURITY.md if policies change
-3. Critical issues will be highlighted in commit messages
-4. Users will be notified through GitHub notifications
-
-## Vulnerability Disclosure Policy
-
-- **Coordinated Disclosure**: We practice coordinated vulnerability disclosure
-- **Fix First**: We will fix the vulnerability before public disclosure
-- **Responsible Timeline**: We aim to fix issues within 90 days of responsible disclosure
-- **Public Acknowledgment**: We will publicly acknowledge security researchers who report issues responsibly
+Security-related updates will be:
+- Documented in CHANGELOG.md with a `[SECURITY]` tag
+- Mentioned in commit messages
+- Highlighted in release notes (if applicable)
 
 ## Additional Resources
 
-- [GNU Emacs Security](https://www.gnu.org/software/emacs/manual/html_node/emacs/Security.html)
-- [Straight.el Security](https://github.com/radian-software/straight.el#security)
-- [OWASP Secure Coding Practices](https://owasp.org/www-project-secure-coding-practices-quick-reference-guide/)
-
-## Questions?
-
-If you have questions about security that don't involve reporting a vulnerability:
-
-- Open a GitHub issue with the `security` label
-- Tag it as a `question`
-- We'll respond publicly to help others with similar questions
+- [Emacs Security](https://www.gnu.org/software/emacs/manual/html_node/emacs/Security.html)
+- [straight.el Security](https://github.com/radian-software/straight.el#security)
+- [LSP Mode Security Considerations](https://emacs-lsp.github.io/lsp-mode/page/security/)
 
 ---
 
-**Remember**: Security is a shared responsibility. Stay vigilant, keep updated, and report issues responsibly. Thank you for helping keep this project secure! 🔒
+Thank you for helping keep this project secure!

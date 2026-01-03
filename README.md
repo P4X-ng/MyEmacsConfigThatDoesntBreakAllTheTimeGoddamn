@@ -99,6 +99,62 @@ Automatic code formatting on save (when formatters are installed):
 6. (Optional) If using GUI Emacs, install fonts for icons:
    - Run `M-x all-the-icons-install-fonts`
 
+## 📖 Usage
+
+After installation, you can start using Emacs with this configuration immediately. Here's how to get started:
+
+### Basic Workflow
+
+1. **Start Emacs**: Simply run `emacs` from your terminal or launch the GUI application
+2. **Open Files**: Use `C-x C-f` (standard Emacs) or `C-c C-p` (VSCode-like quick open) for file opening
+3. **File Explorer**: Press `F8` to toggle the Treemacs file explorer sidebar
+4. **Start Coding**: Open any supported file type (Python, C/C++, Bash, TypeScript/JavaScript) and LSP will activate automatically
+
+### Daily Usage
+
+**Opening and Editing Files**:
+- Use `C-x C-f` to open files with enhanced completion (standard Emacs)
+- Use `C-c C-p` for quick file opening (VSCode-like fuzzy finder)
+- Press `F8` to browse files in Treemacs sidebar
+- Use tabs (`M-t` for new tab, `M-←`/`M-→` to switch) to manage multiple files
+
+**Code Navigation**:
+- `C-c l g g` - Jump to definition
+- `C-c l g r` - Find references
+- `C-'` - Quick jump to any character on screen
+- `C-;` - Quick jump to any line
+
+**Code Editing**:
+- Completions appear automatically as you type
+- `TAB` to accept completions
+- `C-/` to comment/uncomment lines
+- `C->` / `C-<` for multiple cursors
+
+**Git Integration**:
+- `C-x g` to open Magit status
+- Use Magit's intuitive interface for commits, pushes, pulls, and more
+
+**Getting Help**:
+- `C-k` - Show the keybinding cheat sheet
+- `C-h k` - Describe what a key does
+- `C-h f` - Get help on any function
+
+### Working with Projects
+
+While this configuration doesn't use heavy project management, you can still work effectively:
+
+1. Open your project directory with `C-x C-f`
+2. Use Treemacs (`F8`) to browse project files
+3. Use `M-x grep` or `M-x rgrep` to search across files
+4. Git integration via Magit (`C-x g`) handles version control
+
+### Language-Specific Usage
+
+**Python**: LSP provides autocompletion, linting, and formatting (with black)
+**C/C++**: Full IDE features via clangd (go-to-definition, refactoring, etc.)
+**Bash**: Script editing with bash-language-server
+**TypeScript/JavaScript**: Full IDE support with typescript-language-server
+
 ## ⌨️ Key Keybindings
 
 **Note**: This configuration preserves standard Emacs keybindings (like `C-p` for previous-line, `C-b` for backward-char) and adds VSCode-like alternatives that don't conflict with core Emacs functionality.
@@ -443,6 +499,123 @@ For detailed information about fixes, see **[FIXES.md](FIXES.md)**
 - **Node.js**: For pyright and bash-language-server
 - **clangd**: For C/C++ support
 - **Git**: For package management and Magit
+
+## 🔌 API Reference
+
+This configuration exposes several interactive functions and customization points that you can use programmatically or interactively.
+
+### Core Functions
+
+**Package Management (straight.el)**:
+- `straight-pull-all` - Update all packages to latest versions
+- `straight-rebuild-all` - Rebuild all packages
+- `straight-freeze-versions` - Lock package versions
+- `straight-thaw-versions` - Restore locked versions
+
+**LSP Functions** (prefix: `lsp-`):
+- `lsp` - Start LSP server for current buffer
+- `lsp-workspace-restart` - Restart the LSP server
+- `lsp-describe-thing-at-point` - Show documentation for symbol at point
+- `lsp-find-definition` - Go to definition (also `C-c l g g`)
+- `lsp-find-references` - Find all references (also `C-c l g r`)
+- `lsp-rename` - Rename symbol across workspace (also `C-c l r r`)
+- `lsp-format-buffer` - Format current buffer (also `C-c l =`)
+
+**Completion (Corfu)**:
+- `corfu-mode` - Toggle completion in current buffer
+- `global-corfu-mode` - Toggle completion globally
+- `corfu-insert` - Insert current completion candidate
+
+**File Navigation**:
+- `treemacs` - Open/close file tree sidebar (also `F8`)
+- `treemacs-select-window` - Focus the Treemacs window
+- `find-file` - Enhanced file opening with completion (also `C-x C-f`)
+
+**Git (Magit)**:
+- `magit-status` - Open Magit status buffer (also `C-x g`)
+- `magit-commit` - Create a commit
+- `magit-push` - Push changes
+- `magit-pull` - Pull changes
+- `magit-log` - View commit history
+
+**Multiple Cursors**:
+- `mc/mark-next-like-this` - Mark next occurrence (also `C->`)
+- `mc/mark-previous-like-this` - Mark previous occurrence (also `C-<`)
+- `mc/edit-lines` - Add cursor to each line in region (also `C-S-c C-S-c`)
+
+**AI Integration (GPTel)**:
+- `gptel` - Open ChatGPT interface (also `C-c C-g`)
+- `gptel-send` - Send current region/buffer to ChatGPT
+
+### Customization Variables
+
+**Theme and Appearance**:
+```elisp
+;; Change theme (any doom-theme)
+(load-theme 'doom-dracula t)  ; or doom-one, doom-molokai, etc.
+
+;; Disable modeline icons
+(setq doom-modeline-icon nil)
+
+;; Customize tab bar
+(setq tab-bar-new-tab-choice "*scratch*")
+```
+
+**Completion Behavior**:
+```elisp
+;; Adjust completion delay
+(setq corfu-auto-delay 0.2)  ; default is 0.2 seconds
+
+;; Change completion prefix length
+(setq corfu-auto-prefix 2)  ; show after 2 characters
+
+;; Disable auto-completion
+(setq corfu-auto nil)  ; manual completion with M-TAB
+```
+
+**LSP Configuration**:
+```elisp
+;; Adjust LSP performance
+(setq lsp-idle-delay 0.5)  ; responsiveness vs CPU usage
+
+;; Disable certain LSP features
+(setq lsp-enable-symbol-highlighting nil)
+(setq lsp-ui-doc-enable nil)  ; disable hover docs
+```
+
+### Hooks and Extension Points
+
+You can extend the configuration by adding to these hooks:
+
+```elisp
+;; Run code after Emacs startup
+(add-hook 'emacs-startup-hook
+  (lambda ()
+    (message "Emacs started!")))
+
+;; Run code when entering a programming mode
+(add-hook 'prog-mode-hook
+  (lambda ()
+    (display-line-numbers-mode 1)))
+
+;; Language-specific hooks
+(add-hook 'python-mode-hook 'my-python-setup)
+(add-hook 'c-mode-hook 'my-c-setup)
+```
+
+### Adding New Languages
+
+To add LSP support for a new language:
+
+```elisp
+;; Example: Adding Rust support
+(use-package rustic
+  :straight t
+  :config
+  (setq rustic-lsp-server 'rust-analyzer))
+```
+
+For more advanced customization, edit `dot.emacs.d/init.el` directly.
 
 ## Contributing
 
