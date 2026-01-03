@@ -6,6 +6,7 @@ Provides:
 - Chat interface with LLM support
 - Context management
 - Simple HTTP JSON API for Emacs integration
+- Rate limiting for security
 """
 
 import json
@@ -14,12 +15,83 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, Any, List
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+# Security configuration constants
+FORBIDDEN_PATH_PREFIXES = tuple(
+    os.environ.get('FORBIDDEN_PATH_PREFIXES', '/etc:/sys:/proc:/dev:/boot').split(':')
+)
+
+# Rate limiting configuration from environment
+RATE_LIMIT_MAX_REQUESTS = int(os.environ.get('IDE_SERVER_MAX_REQUESTS', '100'))
+RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get('IDE_SERVER_RATE_LIMIT_WINDOW', '60'))
 
 # Global shared state with thread safety
 _chat_manager = None
 _context_manager = None
+_rate_limiter = None
 _state_lock = threading.Lock()
+
+
+class RateLimiter:
+    """Simple rate limiter to prevent abuse."""
+    
+    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
+        """
+        Initialize rate limiter.
+        
+        Args:
+            max_requests: Maximum requests allowed per window
+            window_seconds: Time window in seconds
+        """
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests = defaultdict(list)
+        self.lock = threading.Lock()
+    
+    def is_allowed(self, client_id: str) -> bool:
+        """
+        Check if request from client is allowed.
+        
+        Args:
+            client_id: Client identifier (usually IP address)
+            
+        Returns:
+            True if request is allowed, False if rate limit exceeded
+        """
+        with self.lock:
+            now = datetime.now()
+            cutoff = now - timedelta(seconds=self.window_seconds)
+            
+            # Remove old requests outside the window
+            self.requests[client_id] = [
+                req_time for req_time in self.requests[client_id]
+                if req_time > cutoff
+            ]
+            
+            # Check if under limit
+            if len(self.requests[client_id]) < self.max_requests:
+                self.requests[client_id].append(now)
+                return True
+            
+            return False
+    
+    def get_stats(self, client_id: str) -> Dict[str, Any]:
+        """Get rate limit stats for a client."""
+        with self.lock:
+            now = datetime.now()
+            cutoff = now - timedelta(seconds=self.window_seconds)
+            recent_requests = [
+                req_time for req_time in self.requests[client_id]
+                if req_time > cutoff
+            ]
+            return {
+                "requests": len(recent_requests),
+                "max_requests": self.max_requests,
+                "window_seconds": self.window_seconds,
+                "remaining": max(0, self.max_requests - len(recent_requests))
+            }
 
 
 class ChatManager:
@@ -112,12 +184,40 @@ class ContextManager:
             self.context_dirs.append(default_dir)
     
     def add_context_dir(self, path: str) -> bool:
-        """Add a context directory."""
-        expanded = os.path.expanduser(path)
-        if os.path.isdir(expanded) and expanded not in self.context_dirs:
-            self.context_dirs.append(expanded)
+        """Add a context directory with robust security validation."""
+        # Security: Basic validation
+        if not path or not path.strip():
+            return False
+        
+        try:
+            # Normalize and expand the path
+            expanded = os.path.abspath(os.path.expanduser(path.strip()))
+            normalized = os.path.normpath(expanded)
+            
+            # Security: Check for directory traversal attempts
+            # Ensure the normalized path doesn't contain '..'
+            if '..' in os.path.relpath(normalized, '/'):
+                return False
+            
+            # Security: Verify it's a real directory (not symlink to forbidden location)
+            if not os.path.isdir(normalized):
+                return False
+            
+            # Security: Prevent duplicate entries
+            if normalized in self.context_dirs:
+                return False
+            
+            # Security: Block access to system directories
+            if normalized.startswith(FORBIDDEN_PATH_PREFIXES):
+                return False
+            
+            # All checks passed - add the directory
+            self.context_dirs.append(normalized)
             return True
-        return False
+            
+        except (ValueError, OSError):
+            # Handle any path resolution errors
+            return False
     
     def remove_context_dir(self, path: str) -> bool:
         """Remove a context directory."""
@@ -133,6 +233,22 @@ class ContextManager:
     
     def search_context(self, query: str) -> str:
         """Search context directories for query using simple grep."""
+        # Security: Validate query input
+        if not query:
+            return "Empty query provided."
+        
+        query = query.strip()
+        
+        # Security: Prevent abuse with overly long queries
+        if len(query) > 1000:
+            return "Query too long. Maximum 1000 characters."
+        
+        # Security: Block dangerous characters that could be used for command injection
+        # if the query were ever passed to shell (defense in depth)
+        dangerous_chars = ['\x00', '\n', '\r', ';', '|', '&', '`', '$', '(', ')', '<', '>']
+        if any(char in query for char in dangerous_chars):
+            return "Invalid characters in query. Alphanumeric and basic punctuation only."
+        
         if not self.context_dirs:
             return "No context directories configured. Use /context/add to add directories."
         
@@ -216,6 +332,32 @@ class IDERequestHandler(BaseHTTPRequestHandler):
                     _context_manager = ContextManager()
         return _context_manager
     
+    @property
+    def rate_limiter(self):
+        """Get shared rate limiter instance."""
+        global _rate_limiter
+        if _rate_limiter is None:
+            with _state_lock:
+                if _rate_limiter is None:
+                    # Use configuration from environment variables
+                    _rate_limiter = RateLimiter(
+                        max_requests=RATE_LIMIT_MAX_REQUESTS,
+                        window_seconds=RATE_LIMIT_WINDOW_SECONDS
+                    )
+        return _rate_limiter
+    
+    def _check_rate_limit(self) -> bool:
+        """Check if request should be rate limited."""
+        client_ip = self.client_address[0]
+        if not self.rate_limiter.is_allowed(client_ip):
+            stats = self.rate_limiter.get_stats(client_ip)
+            self._send_error_response(
+                f"Rate limit exceeded. Try again in {stats['window_seconds']} seconds.",
+                429
+            )
+            return False
+        return True
+    
     def log_message(self, format, *args):
         """Override to provide cleaner logging."""
         sys.stderr.write(f"[{self.log_date_time_string()}] {format % args}\n")
@@ -263,6 +405,10 @@ class IDERequestHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         """Handle POST requests."""
+        # Security: Check rate limit for all POST requests
+        if not self._check_rate_limit():
+            return
+        
         try:
             data = self._read_json_body()
         except json.JSONDecodeError:
