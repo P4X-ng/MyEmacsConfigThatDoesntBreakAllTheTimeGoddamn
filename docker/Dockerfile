@@ -1,23 +1,36 @@
+# Self-contained Jedi Language Server Container
+# This Dockerfile creates a fully self-contained Python environment with Jedi and LSP tools.
+# It does NOT rely on any packages from the host system - everything is installed fresh
+# into a dedicated virtual environment within the container.
+
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies needed for building Python packages
+# These are standard build tools and do not come from the host
 RUN apt-get update && apt-get install -y \
     git \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create jedi user and workspace
+# Create jedi user and workspace (not required but follows best practices)
 RUN useradd -m -s /bin/bash jedi
 WORKDIR /home/jedi
 
 # Create jedi deployment structure
-RUN mkdir -p /opt/jedi/{bin,lib,config}
+# Note: We create bin/ and config/ directories, but NOT lib/ since we use a venv
+# All Python packages will be installed into the venv, not copied from anywhere
+# This fixes the "cp: target '/opt/jedi/lib/': No such file or directory" error
+# that occurred in older versions when trying to copy files to a non-existent directory
+RUN mkdir -p /opt/jedi/bin /opt/jedi/config
 
-# Create virtual environment for jedi
+# Create a dedicated virtual environment for all Jedi dependencies
+# This ensures complete isolation from the system Python and any host environment
 RUN python -m venv /opt/jedi/venv
 
-# Install Python packages in the virtual environment with specific versions for reliability
+# Install Python packages into the container's virtual environment
+# These are downloaded from PyPI and installed fresh - NOT copied from the host
+# Using specific versions for reproducibility and reliability
 RUN /opt/jedi/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
     /opt/jedi/venv/bin/pip install --no-cache-dir \
     jedi==0.19.1 \
@@ -32,28 +45,31 @@ RUN /opt/jedi/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
     mypy==1.7.1 \
     black==23.11.0
 
-# Create wrapper scripts
+
+# Copy wrapper scripts that will use the venv Python interpreter
 COPY jedi-wrapper.py /opt/jedi/bin/
 COPY pylsp-wrapper.py /opt/jedi/bin/
 RUN chmod +x /opt/jedi/bin/*.py
 
-# Create configuration files
+# Copy configuration files for Jedi and PyLSP
 COPY jedi-config.json /opt/jedi/config/
 COPY pylsp-config.json /opt/jedi/config/
 
-# Create health check script
+# Copy health check script
 COPY health-check.py /opt/jedi/bin/
 RUN chmod +x /opt/jedi/bin/health-check.py
 
-# Test the installation using the virtual environment
-RUN /opt/jedi/venv/bin/python -c "import jedi; print('Jedi version:', jedi.__version__)" && \
-    /opt/jedi/venv/bin/python -c "from jedi_language_server import server; print('Jedi Language Server OK')" && \
-    /opt/jedi/venv/bin/python -c "import pylsp; print('Python LSP Server OK')"
+# Verify the installation by importing the packages from our venv
+# This ensures everything was installed correctly in the container
+RUN /opt/jedi/venv/bin/python -c "import jedi; print('✓ Jedi version:', jedi.__version__)" && \
+    /opt/jedi/venv/bin/python -c "from jedi_language_server import server; print('✓ Jedi Language Server OK')" && \
+    /opt/jedi/venv/bin/python -c "import pylsp; print('✓ Python LSP Server OK')"
 
-# Create deployment archive
+# Create deployment archive containing the complete jedi installation
+# This archive can be extracted to deploy jedi to a host virtual environment
 RUN cd /opt && tar czf jedi-deployment.tar.gz jedi/
 
-# Switch to jedi user
+# Switch to non-root user for security
 USER jedi
 
 CMD ["/bin/bash"]
