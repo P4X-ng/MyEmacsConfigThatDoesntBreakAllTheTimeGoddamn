@@ -249,8 +249,14 @@ Silently ignores package declarations to avoid console spam."
   (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
   (corfu-preview-current nil)      ; Don't preview current candidate
   (corfu-quit-no-match 'separator) ; Quit on no match except after separator
+  :bind
+  ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
+  (:map corfu-map
+        ("<C-tab>" . completion-at-point))
   :init
-  (global-corfu-mode))
+  (global-corfu-mode)
+  ;; Also bind Ctrl+Tab globally to trigger completion
+  (global-set-key (kbd "<C-tab>") 'completion-at-point))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
 (use-package corfu-popupinfo
@@ -578,7 +584,7 @@ Returns the parsed JSON response or signals an error on failure."
 
 ;; --- IDE Layout Setup ---
 (defun my/setup-ide-layout ()
-  "Setup IDE-like layout: Treemacs left, shell bottom, chat right."
+  "Setup IDE-like layout: Treemacs left, shell bottom."
   (interactive)
   (when (not noninteractive)
     ;; Delete other windows first
@@ -599,22 +605,8 @@ Returns the parsed JSON response or signals an error on failure."
           (vterm)
         (eshell))
       
-      ;; Go back to main window and split right for chat (30% width)
-      (select-window main-window)
-      (let* ((chat-window (split-window main-window nil 'right))
-             (chat-width (floor (* 0.3 (window-total-width)))))
-        (select-window chat-window)
-        (window-resize chat-window (- chat-width (window-total-width)) t)
-        ;; Open IDE chat or GPTel in right window
-        (if (get-buffer "*IDE Chat*")
-            (switch-to-buffer "*IDE Chat*")
-          (when (and (fboundp 'gptel)
-                     (or (bound-and-true-p gptel-api-key)
-                         (getenv "OPENAI_API_KEY")))
-            (ignore-errors (gptel))))
-        
-        ;; Return focus to main editing window
-        (select-window main-window)))))
+      ;; Return focus to main editing window
+      (select-window main-window))))
 
 (defun my/open-side-panels ()
   "Auto-open panels on startup - using new IDE layout."
@@ -740,6 +732,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "Emacs IDE Keybindings\n=====================\n\n")
     (princ "Autocompletion:\n")
     (princ "  Auto ........... Completions appear while typing (2+ chars)\n")
+    (princ "  C-TAB .......... Trigger completion manually (Ctrl+Tab)\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
     (princ "  S-TAB .......... Cycle backward\n")
     (princ "  RET ............ Insert selected completion\n")
