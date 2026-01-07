@@ -249,13 +249,9 @@ Silently ignores package declarations to avoid console spam."
   (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
   (corfu-preview-current nil)      ; Don't preview current candidate
   (corfu-quit-no-match 'separator) ; Quit on no match except after separator
-  :bind
-  ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
-  (:map corfu-map
-        ("<C-tab>" . completion-at-point))
   :init
   (global-corfu-mode)
-  ;; Also bind Ctrl+Tab globally to trigger completion
+  ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
   (global-set-key (kbd "<C-tab>") 'completion-at-point))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
