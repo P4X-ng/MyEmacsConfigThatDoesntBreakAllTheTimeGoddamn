@@ -102,7 +102,22 @@ Silently ignores package declarations to avoid console spam."
   :if (display-graphic-p))
 
 ;; --- Terminal & Shell Configuration ---
-;; Helper function to determine best available shell
+;; Helper function to determine best available shell type for shell-pop
+(defun my/shell-pop-shell-type ()
+  "Return shell-pop configuration for the best available shell."
+  (cond
+   ;; Prefer vterm if available (best terminal emulation)
+   ((fboundp 'vterm) 
+    '("vterm" "*vterm*" (lambda () (vterm))))
+   ;; Fall back to ansi-term if vterm not available
+   ((fboundp 'ansi-term)
+    '("ansi-term" "*ansi-term*" 
+      (lambda () (ansi-term (or (getenv "SHELL") "/bin/bash")))))
+   ;; Last resort: eshell (not ideal but works everywhere)
+   (t 
+    '("eshell" "*eshell*" (lambda () (eshell))))))
+
+;; Helper function to determine best available shell function for direct terminal
 (defun my/best-shell-function ()
   "Return a function that opens the best available shell."
   (cond
@@ -164,19 +179,8 @@ Silently ignores package declarations to avoid console spam."
 ;; This is a much better alternative to eshell for most use cases
 (use-package shell-pop
   :config
-  ;; Use the same shell selection logic as my/terminal
-  (setq shell-pop-shell-type 
-        (cond
-         ;; Prefer vterm if available (best terminal emulation)
-         ((fboundp 'vterm) 
-          '("vterm" "*vterm*" (lambda () (vterm))))
-         ;; Fall back to ansi-term if vterm not available
-         ((fboundp 'ansi-term)
-          '("ansi-term" "*ansi-term*" 
-            (lambda () (ansi-term (or (getenv "SHELL") "/bin/bash")))))
-         ;; Last resort: eshell (not ideal but works everywhere)
-         (t 
-          '("eshell" "*eshell*" (lambda () (eshell))))))
+  ;; Use shared helper function for consistent shell selection
+  (setq shell-pop-shell-type (my/shell-pop-shell-type))
   (setq shell-pop-window-size 30)           ; 30% of frame height
   (setq shell-pop-full-span t)              ; Span full width
   (setq shell-pop-window-position "bottom") ; Popup from bottom
@@ -303,9 +307,9 @@ Silently ignores package declarations to avoid console spam."
 ;; NOTE: Company is configured to work alongside Corfu, not compete with it
 (use-package company
   :config
-  ;; Disable company by default - we prefer Corfu
-  ;; Company will only activate when explicitly called or as fallback
-  (setq company-global-modes '(not prog-mode text-mode))  ; Disable in most modes
+  ;; Disable company in programming and text modes where Corfu is preferred
+  ;; Company remains available for manual activation with M-/ in all modes
+  (setq company-global-modes '(not prog-mode text-mode))  ; Corfu handles these
   (setq company-idle-delay 0.3)              ; Slightly slower than corfu to avoid conflict
   (setq company-minimum-prefix-length 3)     ; Require 3 characters (vs corfu's 2)
   (setq company-selection-wrap-around t)     ; Wrap around when cycling
@@ -823,7 +827,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  M-<digit> ...... Quick select (Company when active)\n\n")
     (princ "🖥️  Terminal & Shell (IMPROVED!):\n")
     (princ "  F9 ............. Quick popup shell (shell-pop) ⭐ NEW & BETTER!\n")
-    (princ "  C-` ............ Alternative popup shell toggle ⭐ NEW!\n")
+    (princ "  C-backtick ..... Alternative popup shell toggle (Ctrl+`) ⭐ NEW!\n")
     (princ "  C-c t .......... Open terminal (vterm/ansi-term/eshell)\n")
     (princ "  C-c T .......... Open terminal in current directory\n")
     (princ "  C-c M-t ........ Open terminal in project root\n")
