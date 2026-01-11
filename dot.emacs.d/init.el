@@ -150,6 +150,36 @@ Silently ignores package declarations to avoid console spam."
 (global-set-key (kbd "C-c T") #'my/terminal-here)
 (global-set-key (kbd "C-c M-t") #'my/terminal-project)
 
+;; --- Shell-pop: Quick popup terminal (better UX than eshell) ---
+;; Shell-pop provides a quick, toggleable terminal that slides in from the bottom
+;; This is a much better alternative to eshell for most use cases
+(use-package shell-pop
+  :config
+  (setq shell-pop-shell-type 
+        (cond
+         ;; Prefer vterm if available (best terminal emulation)
+         ((fboundp 'vterm) 
+          '("vterm" "*vterm*" (lambda () (vterm))))
+         ;; Fall back to ansi-term if vterm not available
+         ((fboundp 'ansi-term)
+          '("ansi-term" "*ansi-term*" 
+            (lambda () (ansi-term (or (getenv "SHELL") "/bin/bash")))))
+         ;; Last resort: eshell (not ideal but works everywhere)
+         (t 
+          '("eshell" "*eshell*" (lambda () (eshell))))))
+  (setq shell-pop-window-size 30)           ; 30% of frame height
+  (setq shell-pop-full-span t)              ; Span full width
+  (setq shell-pop-window-position "bottom") ; Popup from bottom
+  (setq shell-pop-autocd-to-working-dir t)  ; Auto-cd to current file's directory
+  (setq shell-pop-restore-window-configuration t) ; Restore layout on close
+  (setq shell-pop-cleanup-buffer-at-process-exit t)) ; Clean up when shell exits
+
+;; Quick shell access keybindings
+;; F9 - Quick toggle for popup shell (like in modern IDEs)
+;; C-` - Alternative toggle (backtick, common in VS Code)
+(global-set-key (kbd "<f9>") #'shell-pop)
+(global-set-key (kbd "C-`") #'shell-pop)
+
 ;; --- Enhanced File Management ---
 (use-package dired-sidebar
   :commands dired-sidebar-toggle-sidebar
@@ -240,6 +270,9 @@ Silently ignores package declarations to avoid console spam."
   (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
 
 ;; --- Completion + Orderless ---
+;; DUAL COMPLETION SYSTEM: Corfu (modern) + Company (reliable fallback)
+;; Both are configured to work together - Corfu is primary, Company is backup
+
 ;; Corfu: Modern in-buffer completion popup (auto-shows while typing)
 (use-package corfu
   :custom
@@ -253,6 +286,44 @@ Silently ignores package declarations to avoid console spam."
   (global-corfu-mode)
   ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
   (global-set-key (kbd "<C-tab>") 'completion-at-point))
+
+;; Company-mode: Reliable completion backend (backup system)
+;; Company provides robust autocompletion that works everywhere
+;; If Corfu has issues, Company will still provide completions
+(use-package company
+  :init
+  ;; Enable company globally but with lower priority than corfu
+  (global-company-mode 1)
+  :config
+  (setq company-idle-delay 0.2)              ; Show completions after 0.2s (same as corfu)
+  (setq company-minimum-prefix-length 2)     ; Trigger after 2 characters
+  (setq company-selection-wrap-around t)     ; Wrap around when cycling
+  (setq company-show-numbers t)              ; Show numbers for quick selection
+  (setq company-tooltip-align-annotations t) ; Align annotations to right
+  (setq company-require-match nil)           ; Don't require match
+  (setq company-dabbrev-downcase nil)        ; Don't downcase completions
+  (setq company-dabbrev-ignore-case t)       ; Ignore case when completing
+  ;; Company backends - order matters (most specific first)
+  (setq company-backends 
+        '((company-capf           ; Completion-at-point (works with LSP)
+           company-files          ; File path completion
+           company-keywords)      ; Language keywords
+          (company-dabbrev-code   ; Code words from buffers
+           company-dabbrev)))     ; All words from buffers
+  ;; Keybindings for company
+  (define-key company-active-map (kbd "TAB") #'company-complete-selection)
+  (define-key company-active-map (kbd "<tab>") #'company-complete-selection)
+  (define-key company-active-map (kbd "C-n") #'company-select-next)
+  (define-key company-active-map (kbd "C-p") #'company-select-previous))
+
+;; Company-box: Modern UI for company-mode (popup with icons and docs)
+(use-package company-box
+  :after company
+  :hook (company-mode . company-box-mode)
+  :config
+  (setq company-box-show-single-candidate t)
+  (setq company-box-max-candidates 50)
+  (setq company-box-doc-delay 0.5))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
 (use-package corfu-popupinfo
@@ -725,27 +796,32 @@ Returns the parsed JSON response or signals an error on failure."
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
-    (princ "Emacs IDE Keybindings\n=====================\n\n")
-    (princ "Autocompletion:\n")
+    (princ "🚀 Enhanced Emacs IDE Keybindings\n")
+    (princ "=====================================\n\n")
+    (princ "💡 Autocompletion (Dual System: Corfu + Company):\n")
     (princ "  Auto ........... Completions appear while typing (2+ chars)\n")
     (princ "  C-TAB .......... Trigger completion manually (Ctrl+Tab)\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
+    (princ "  C-n / C-p ...... Next/Previous completion (in company popup)\n")
     (princ "  S-TAB .......... Cycle backward\n")
     (princ "  RET ............ Insert selected completion\n")
-    (princ "  ESC ............ Cancel popup\n\n")
+    (princ "  ESC ............ Cancel popup\n")
+    (princ "  M-<digit> ...... Quick select (company-mode)\n\n")
+    (princ "🖥️  Terminal & Shell (IMPROVED!):\n")
+    (princ "  F9 ............. Quick popup shell (shell-pop) ⭐ NEW & BETTER!\n")
+    (princ "  C-` ............ Alternative popup shell toggle ⭐ NEW!\n")
+    (princ "  C-c t .......... Open terminal (vterm/ansi-term/eshell)\n")
+    (princ "  C-c T .......... Open terminal in current directory\n")
+    (princ "  C-c M-t ........ Open terminal in project root\n")
+    (princ "  \n")
+    (princ "  💡 TIP: F9 gives you a quick popup shell - much better than eshell!\n")
+    (princ "      It slides in from the bottom like modern IDEs.\n\n")
     (princ "LSP Commands (C-c l prefix):\n")
     (princ "  C-c l g g ...... Go to definition\n")
     (princ "  C-c l g r ...... Find references\n")
     (princ "  C-c l r r ...... Rename symbol\n")
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
-    (princ "Navigation / UI:\n")
-    (princ "🚀 Enhanced Emacs IDE Keybindings\n")
-    (princ "=====================================\n\n")
-    (princ "🖥️  Terminal & Shell:\n")
-    (princ "  C-c t .......... Open terminal (vterm/ansi-term)\n")
-    (princ "  C-c T .......... Open terminal in current directory\n")
-    (princ "  C-c M-t ........ Open terminal in project root\n\n")
     (princ "🗂️  Navigation & Files:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
@@ -754,14 +830,11 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  M-x ............ Command palette (enhanced)\n\n")
     (princ "📑 Tabs & Windows:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
-    (princ "  M-t / M-w ...... New / Close tab\n")
-    (princ "  C-c l .......... Reset IDE layout\n\n")
-    (princ "Git:\n")
     (princ "  M-Arrows ....... Switch window focus\n")
     (princ "  C-| / C-- ...... Split window vertical / horizontal\n")
-    (princ "  M-PgUp/PgDn .... Switch tabs\n")
+    (princ "  M-PgUp/PgDn .... Previous/Next tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "Projects & Git:\n")
+    (princ "📦 Projects & Git:\n")
     (princ "  C-x p .......... Project prefix (find file, switch project)\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")

@@ -2,7 +2,30 @@
 
 This Emacs configuration provides a VSCode-like experience with all the power of Emacs, but without the memory-heavy project management features.
 
+## 🎉 NEW: Better Shell & Enhanced Autocomplete!
+
+### ⭐ Quick Popup Shell (Like Modern IDEs)
+- Press **F9** to toggle a quick shell that slides in from the bottom
+- No more clunky eshell - get vterm or ansi-term in a convenient popup!
+- See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md) for details
+
+### ⚡ Dual Autocomplete System  
+- **Corfu** (modern, minimal) + **Company** (robust, proven)
+- Both work together for maximum reliability
+- If one doesn't work, the other will!
+- Full LSP integration for Python, C/C++, Bash, TypeScript
+
 ## 🎨 VSCode-like Features
+
+### Shell & Terminal (IMPROVED!)
+- **Shell-Pop**: Quick popup terminal (press `F9` or `C-\``) ⭐ NEW!
+- **vterm**: Full terminal emulation that behaves like your system shell
+- **Multiple Options**: vterm, ansi-term, or eshell (automatic fallback)
+- **Smart Launching**:
+  - `F9` - Quick popup shell (recommended!)
+  - `C-c t` - Open terminal in new buffer
+  - `C-c T` - Terminal in current directory
+  - `C-c M-t` - Terminal in project root
 
 ### Visual Experience
 - **Doom Themes**: Modern, beautiful color schemes similar to VSCode themes
@@ -17,13 +40,15 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 - **Quick File Open**: `C-c C-p` to quickly open files (VSCode-inspired)
 - **Buffer Switching**: `C-x C-b` to switch between open files (enhanced standard binding)
 
-### Code Intelligence
+### Code Intelligence (ENHANCED!)
+- **Dual Completion**: Corfu + Company work together ⭐ NEW!
 - **LSP Mode**: Language Server Protocol support for:
-  - Python (with Pyright)
+  - Python (with Jedi/Pyright)
   - Bash/Shell
   - C/C++ (with clangd)
-- **Corfu**: Auto-completion as you type (like IntelliSense)
-- **Cape**: Additional completion backends for files and words
+  - TypeScript/JavaScript
+- **Visual Completion**: Icons showing completion type (function, variable, etc.)
+- **Documentation Popups**: Inline docs with function signatures
 - **Flycheck**: Real-time syntax checking and linting
 - **LSP UI**: Inline errors, documentation, and code actions
 
@@ -230,6 +255,9 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - `which-key` - Keybinding discovery
 - `vertico` - Vertical completion UI
 - `marginalia` - Rich completion annotations
+- **`shell-pop`** - Quick popup terminal ⭐ NEW!
+- **`company`** - Completion framework ⭐ NEW!
+- **`company-box`** - Modern UI for company ⭐ NEW!
 - `corfu` - In-buffer completion
 - `orderless` - Flexible completion style
 - `cape` - Completion backends
@@ -242,7 +270,7 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - `flycheck` - Syntax checking
 - `lsp-mode` - Language Server Protocol
 - `lsp-ui` - LSP UI enhancements
-- `lsp-pyright` - Python LSP
+- `lsp-jedi` - Python Jedi LSP
 - `treemacs` - File explorer
 - `magit` - Git interface
 - `gptel` - ChatGPT integration
@@ -254,8 +282,26 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - Some features (like icons) require GUI Emacs for full effect
 - LSP features require language servers to be installed separately
 - Auto-formatting requires external formatters (black, shfmt, clang-format)
+- **Shell-pop automatically uses the best available terminal** (vterm > ansi-term > eshell)
+- **Dual autocomplete** means you always get completions (Corfu or Company)
 
 ## 🐛 Troubleshooting
+
+### Shell feels clunky or eshell not working well?
+**Solution:** Use the new shell-pop feature! Press **F9** for a quick popup terminal.
+- Much better than eshell for most use cases
+- Automatically uses vterm if available (best terminal)
+- Falls back to ansi-term if vterm won't compile
+- See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md) for details
+
+### Autocomplete not working?
+**Quick fixes:**
+1. Make sure language servers are installed (see Installation section)
+2. Check if LSP started: Look for "LSP" in the mode line
+3. Try manual trigger: Press **C-TAB** (Ctrl+Tab)
+4. Check mode: Make sure file type is detected (Python, C, Bash, etc.)
+
+**Detailed help:** See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md)
 
 ### Icons not showing
 Run `M-x all-the-icons-install-fonts` in GUI Emacs
