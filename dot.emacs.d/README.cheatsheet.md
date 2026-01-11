@@ -18,7 +18,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 - `C-c M-t` — Open terminal in project root
 
 ## 🗂️ Navigation & Files  
-- `F8` — Toggle Treemacs sidebar (shows current directory)
+- `F8` — Toggle Treemacs sidebar (opens current directory, closes if already open)
 - `C-x C-f` — Find file (enhanced with counsel)
 - `C-c f` — Recent files
 - `C-s` — Search in buffer (swiper)

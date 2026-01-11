@@ -761,7 +761,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c T .......... Open terminal in current directory\n")
     (princ "  C-c M-t ........ Open terminal in project root\n\n")
     (princ "🗂️  Navigation & Files:\n")
-    (princ "  F8 ............. Toggle Treemacs sidebar\n")
+    (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
     (princ "  C-c f .......... Recent files\n")
     (princ "  C-s ............ Search in buffer (swiper)\n")
