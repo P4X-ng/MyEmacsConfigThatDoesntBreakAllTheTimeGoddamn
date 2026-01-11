@@ -119,19 +119,25 @@ M-x lsp         ; Manually start LSP
 M-x messages    ; See any error messages
 ```
 
-#### 3. **Corfu or Company Not Active**
+#### 3. **Corfu Not Active**
 
-This configuration uses BOTH Corfu and Company for maximum reliability.
+This configuration primarily uses **Corfu** for autocompletion, with Company available as a manual fallback.
 
-**Check if active:**
+**Check if Corfu is active:**
 ```elisp
-M-x corfu-mode          ; Toggle corfu
-M-x company-mode        ; Toggle company
+M-x corfu-mode          ; Toggle corfu in current buffer
 M-x global-corfu-mode   ; Toggle corfu globally
-M-x global-company-mode ; Toggle company globally
 ```
 
-All should return "enabled" status.
+Corfu should be enabled by default.
+
+**If you prefer Company:**
+```elisp
+M-x company-mode        ; Enable company in current buffer
+M-/                     ; Manually trigger company completion
+```
+
+**Note:** Corfu is the primary completion system and should work automatically. Company is configured as a manual fallback to avoid conflicts.
 
 #### 4. **Wrong File Type**
 
@@ -189,36 +195,48 @@ ec
 
 ### Autocomplete Keybindings
 
-**Automatic (default):**
+**Automatic (default with Corfu):**
 - Completions appear automatically after typing 2 characters
 - Wait 0.2 seconds for popup to appear
 
 **Manual trigger:**
-- **C-TAB** (Ctrl+Tab) - Force completion popup
+- **C-TAB** (Ctrl+Tab) - Force Corfu completion popup
+- **M-/** - Trigger Company completion (alternative system)
 
-**Navigation:**
+**Navigation (Corfu):**
 - **TAB** - Accept selection or cycle forward
 - **S-TAB** (Shift+Tab) - Cycle backward
-- **C-n** / **C-p** - Next/Previous (in company popup)
-- **M-1** through **M-9** - Quick select (company mode)
 - **RET** (Enter) - Insert completion
 - **ESC** - Cancel popup
 
+**Navigation (Company, when active):**
+- **C-n** / **C-p** - Next/Previous completion
+- **M-1** through **M-9** - Quick select by number
+- **TAB** - Accept selection
+
 ### Advanced: Autocomplete Configuration
 
-The configuration in `init.el` has two completion systems:
+The configuration in `init.el` uses a dual completion approach:
 
-**Corfu (Primary):**
+**Corfu (Primary - Always Active):**
 - Modern, minimal completion UI
 - Shows inline in buffer
 - Works with LSP via `completion-at-point`
+- Enabled globally by default
+- Auto-triggers after 2 characters
 
-**Company (Backup):**
+**Company (Manual Fallback):**
 - Robust, proven completion framework
 - Shows popup with more information
-- Works even if Corfu has issues
+- Available as manual alternative (M-/)
+- Configured to avoid conflicts with Corfu
+- Only active when explicitly triggered or in specific modes
 
-**Both are enabled** and work together. If one fails, the other provides completions.
+**Why this design?**
+- Corfu is preferred for its modern, minimal interface
+- Company is available as a fallback if you prefer it
+- They don't conflict because Company is not globally enabled
+- You can use both: Corfu automatically, Company when needed
 
 ### Still Not Working?
 

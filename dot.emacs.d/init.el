@@ -102,6 +102,17 @@ Silently ignores package declarations to avoid console spam."
   :if (display-graphic-p))
 
 ;; --- Terminal & Shell Configuration ---
+;; Helper function to determine best available shell
+(defun my/best-shell-function ()
+  "Return a function that opens the best available shell."
+  (cond
+   ((fboundp 'vterm) 
+    (lambda () (vterm)))
+   ((fboundp 'ansi-term)
+    (lambda () (ansi-term (or (getenv "SHELL") "/bin/bash"))))
+   (t 
+    (lambda () (eshell)))))
+
 ;; Proper terminal emulation with vterm (compile-dependent)
 (use-package vterm
   :commands vterm
@@ -122,9 +133,7 @@ Silently ignores package declarations to avoid console spam."
   "Launch terminal - vterm if available, ansi-term otherwise."
   (interactive)
   (condition-case err
-      (if (fboundp 'vterm)
-          (vterm)
-        (ansi-term (or (getenv "SHELL") "/bin/bash")))
+      (funcall (my/best-shell-function))
     (error 
      (message "Failed to open terminal: %s. Trying eshell..." err)
      (eshell))))
@@ -155,6 +164,7 @@ Silently ignores package declarations to avoid console spam."
 ;; This is a much better alternative to eshell for most use cases
 (use-package shell-pop
   :config
+  ;; Use the same shell selection logic as my/terminal
   (setq shell-pop-shell-type 
         (cond
          ;; Prefer vterm if available (best terminal emulation)
@@ -290,13 +300,14 @@ Silently ignores package declarations to avoid console spam."
 ;; Company-mode: Reliable completion backend (backup system)
 ;; Company provides robust autocompletion that works everywhere
 ;; If Corfu has issues, Company will still provide completions
+;; NOTE: Company is configured to work alongside Corfu, not compete with it
 (use-package company
-  :init
-  ;; Enable company globally but with lower priority than corfu
-  (global-company-mode 1)
   :config
-  (setq company-idle-delay 0.2)              ; Show completions after 0.2s (same as corfu)
-  (setq company-minimum-prefix-length 2)     ; Trigger after 2 characters
+  ;; Disable company by default - we prefer Corfu
+  ;; Company will only activate when explicitly called or as fallback
+  (setq company-global-modes '(not prog-mode text-mode))  ; Disable in most modes
+  (setq company-idle-delay 0.3)              ; Slightly slower than corfu to avoid conflict
+  (setq company-minimum-prefix-length 3)     ; Require 3 characters (vs corfu's 2)
   (setq company-selection-wrap-around t)     ; Wrap around when cycling
   (setq company-show-numbers t)              ; Show numbers for quick selection
   (setq company-tooltip-align-annotations t) ; Align annotations to right
@@ -314,7 +325,9 @@ Silently ignores package declarations to avoid console spam."
   (define-key company-active-map (kbd "TAB") #'company-complete-selection)
   (define-key company-active-map (kbd "<tab>") #'company-complete-selection)
   (define-key company-active-map (kbd "C-n") #'company-select-next)
-  (define-key company-active-map (kbd "C-p") #'company-select-previous))
+  (define-key company-active-map (kbd "C-p") #'company-select-previous)
+  ;; Allow manual activation with M-/ (traditional Emacs completion key)
+  (global-set-key (kbd "M-/") #'company-complete))
 
 ;; Company-box: Modern UI for company-mode (popup with icons and docs)
 (use-package company-box
@@ -798,15 +811,16 @@ Returns the parsed JSON response or signals an error on failure."
   (with-output-to-temp-buffer "*Keybindings*"
     (princ "🚀 Enhanced Emacs IDE Keybindings\n")
     (princ "=====================================\n\n")
-    (princ "💡 Autocompletion (Dual System: Corfu + Company):\n")
-    (princ "  Auto ........... Completions appear while typing (2+ chars)\n")
-    (princ "  C-TAB .......... Trigger completion manually (Ctrl+Tab)\n")
+    (princ "💡 Autocompletion (Corfu primary, Company fallback):\n")
+    (princ "  Auto ........... Completions appear while typing (2+ chars, Corfu)\n")
+    (princ "  C-TAB .......... Trigger Corfu completion manually (Ctrl+Tab)\n")
+    (princ "  M-/ ............ Trigger Company completion (alternative) ⭐ NEW!\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
-    (princ "  C-n / C-p ...... Next/Previous completion (in company popup)\n")
+    (princ "  C-n / C-p ...... Next/Previous (Company when active)\n")
     (princ "  S-TAB .......... Cycle backward\n")
     (princ "  RET ............ Insert selected completion\n")
     (princ "  ESC ............ Cancel popup\n")
-    (princ "  M-<digit> ...... Quick select (company-mode)\n\n")
+    (princ "  M-<digit> ...... Quick select (Company when active)\n\n")
     (princ "🖥️  Terminal & Shell (IMPROVED!):\n")
     (princ "  F9 ............. Quick popup shell (shell-pop) ⭐ NEW & BETTER!\n")
     (princ "  C-` ............ Alternative popup shell toggle ⭐ NEW!\n")
