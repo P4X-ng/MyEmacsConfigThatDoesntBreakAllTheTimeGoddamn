@@ -459,22 +459,17 @@ Silently ignores package declarations to avoid console spam."
 
 ;; Custom function to open treemacs in current directory (not project mode)
 (defun my/treemacs-current-dir ()
-  "Open treemacs showing the current directory, not a project."
+  "Open treemacs showing the current directory as a simple file browser."
   (interactive)
   (require 'treemacs)
-  (let ((current-dir (or (when buffer-file-name
-                           (file-name-directory buffer-file-name))
-                         default-directory)))
-    ;; If treemacs is already visible, just toggle it off
-    (if (treemacs-get-local-window)
-        (delete-window (treemacs-get-local-window))
-      ;; Otherwise open treemacs and add current directory
-      (save-selected-window
-        (treemacs)
-        ;; treemacs-add-and-display-current-project adds the current directory
-        (when (and (not (treemacs-current-workspace))
-                   (treemacs-workspaces))
-          (treemacs-add-and-display-current-project))))))
+  ;; If treemacs is already visible, just toggle it off
+  (if (treemacs-get-local-window)
+      (delete-window (treemacs-get-local-window))
+    ;; Otherwise open treemacs - it will show the current directory by default
+    (let ((current-dir (or (when buffer-file-name
+                             (file-name-directory buffer-file-name))
+                           default-directory)))
+      (treemacs-select-directory current-dir))))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
