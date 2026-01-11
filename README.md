@@ -18,7 +18,7 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 ## 🎨 VSCode-like Features
 
 ### Shell & Terminal (IMPROVED!)
-- **Shell-Pop**: Quick popup terminal (press `F9` or `C-\``) ⭐ NEW!
+- **Shell-Pop**: Quick popup terminal (press `F9` or `` C-` ``) ⭐ NEW!
 - **vterm**: Full terminal emulation that behaves like your system shell
 - **Multiple Options**: vterm, ansi-term, or eshell (automatic fallback)
 - **Smart Launching**:

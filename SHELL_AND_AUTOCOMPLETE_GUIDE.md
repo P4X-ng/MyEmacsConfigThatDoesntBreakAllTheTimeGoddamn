@@ -32,7 +32,7 @@ We've added **shell-pop**, which provides a much better shell experience than es
 
 | Shell Type | Quality | Access Method | Best For |
 |------------|---------|---------------|----------|
-| **shell-pop with vterm** | ⭐⭐⭐⭐⭐ | F9 or C-\` | Everything! Quick terminal access |
+| **shell-pop with vterm** | ⭐⭐⭐⭐⭐ | F9 or `` C-` `` | Everything! Quick terminal access |
 | vterm (standalone) | ⭐⭐⭐⭐ | C-c t | Full-screen terminal work |
 | ansi-term | ⭐⭐⭐ | C-c t (fallback) | When vterm won't compile |
 | eshell | ⭐⭐ | M-x eshell | Emacs-native shell scripting |

@@ -306,12 +306,15 @@ Silently ignores package declarations to avoid console spam."
 ;; If Corfu has issues, Company will still provide completions
 ;; NOTE: Company is configured to work alongside Corfu, not compete with it
 (use-package company
+  :init
+  ;; Enable company globally but configure to defer to Corfu in programming modes
+  (global-company-mode 1)
   :config
-  ;; Disable company in programming and text modes where Corfu is preferred
+  ;; Disable automatic company popup in programming and text modes (Corfu handles these)
   ;; Company remains available for manual activation with M-/ in all modes
   (setq company-global-modes '(not prog-mode text-mode))  ; Corfu handles these
-  (setq company-idle-delay 0.3)              ; Slightly slower than corfu to avoid conflict
-  (setq company-minimum-prefix-length 3)     ; Require 3 characters (vs corfu's 2)
+  (setq company-idle-delay nil)              ; Disable auto-popup (manual only with M-/)
+  (setq company-minimum-prefix-length 3)     ; Require 3 characters when triggered
   (setq company-selection-wrap-around t)     ; Wrap around when cycling
   (setq company-show-numbers t)              ; Show numbers for quick selection
   (setq company-tooltip-align-annotations t) ; Align annotations to right
