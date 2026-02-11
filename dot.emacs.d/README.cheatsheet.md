@@ -1,6 +1,6 @@
 # 🚀 Enhanced Emacs IDE Cheat Sheet
 
-Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Emacs at any time to show this list from within the editor.
+Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
 - Completions appear **automatically** while typing (after 2 characters)
@@ -18,8 +18,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c M-t` — Open terminal in project root
 
 ## 🗂️ Navigation & Files  
-- `F8` — Toggle Treemacs sidebar
-<<<<<<< HEAD
+- `F8` — Toggle Treemacs sidebar (opens current directory, closes if already open)
 - `C-x C-f` — Find file (enhanced with counsel)
 - `C-c f` — Recent files
 - `C-s` — Search in buffer (swiper)
@@ -83,7 +82,7 @@ The Python IDE server (`ide-server/server.py`) runs automatically on startup and
 Keep `init.el` handy for more advanced customization details.
 
 ## 💡 Help & Discovery
-- `C-k` — Show this cheat sheet
+- `C-k` or `M-h M-h` — Show this cheat sheet
 - `C-h k` — Describe key
 - `C-h f` — Describe function
 - **Wait 0.5s** — Which-key popup shows available keys

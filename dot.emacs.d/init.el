@@ -439,7 +439,7 @@ Silently ignores package declarations to avoid console spam."
 ;; Simple directory browser on the left - no project management
 (use-package treemacs
   :defer t
-  :bind (("<f8>" . treemacs))
+  :bind (("<f8>" . my/treemacs-current-dir))
   :config
   (setq treemacs-width 30
         treemacs-follow-mode nil
@@ -456,6 +456,20 @@ Silently ignores package declarations to avoid console spam."
         treemacs-sorting 'alphabetic-asc
         treemacs-show-cursor nil
         treemacs-eldoc-display t))
+
+;; Custom function to open treemacs in current directory (not project mode)
+(defun my/treemacs-current-dir ()
+  "Open treemacs showing the current directory as a simple file browser."
+  (interactive)
+  (require 'treemacs)
+  ;; If treemacs is already visible, just toggle it off
+  (if (treemacs-get-local-window)
+      (delete-window (treemacs-get-local-window))
+    ;; Otherwise open treemacs - it will show the current directory by default
+    (let ((current-dir (or (when buffer-file-name
+                             (file-name-directory buffer-file-name))
+                           default-directory)))
+      (treemacs-select-directory current-dir))))
 
 ;; --- GPTel (Chat / LLM) ---
 (use-package gptel
@@ -580,15 +594,15 @@ Returns the parsed JSON response or signals an error on failure."
 
 ;; --- IDE Layout Setup ---
 (defun my/setup-ide-layout ()
-  "Setup IDE-like layout: Treemacs left, shell bottom."
+  "Setup IDE-like layout: Treemacs left showing current dir, shell bottom."
   (interactive)
   (when (not noninteractive)
     ;; Delete other windows first
     (delete-other-windows)
     
-    ;; Open treemacs on the left (it manages its own window)
-    (when (fboundp 'treemacs)
-      (ignore-errors (treemacs)))
+    ;; Open treemacs on the left showing current directory (not project mode)
+    (when (fboundp 'my/treemacs-current-dir)
+      (ignore-errors (my/treemacs-current-dir)))
     
     ;; Split for shell at bottom (30% height)
     (let* ((main-window (selected-window))
@@ -747,7 +761,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c T .......... Open terminal in current directory\n")
     (princ "  C-c M-t ........ Open terminal in project root\n\n")
     (princ "🗂️  Navigation & Files:\n")
-    (princ "  F8 ............. Toggle Treemacs sidebar\n")
+    (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
     (princ "  C-c f .......... Recent files\n")
     (princ "  C-s ............ Search in buffer (swiper)\n")
@@ -783,6 +797,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v s ........ Show active venv\n\n")
     (princ "💡 Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
+    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key\n")
     (princ "  C-h f .......... Describe function\n")
     (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
@@ -800,9 +815,11 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  TypeScript and JavaScript auto-detected\n")
     (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n\n")
+    (princ "  C-k ............ Show this cheat sheet\n")
+    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
+(global-set-key (kbd "M-h M-h") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
 ;; Better buffer management
