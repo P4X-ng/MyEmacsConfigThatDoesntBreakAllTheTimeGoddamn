@@ -323,19 +323,23 @@ Silently ignores package declarations to avoid console spam."
   (setq flycheck-check-syntax-automatically '(save mode-enabled idle-change new-line)
         flycheck-idle-change-delay 0.5)  ; Check 0.5s after typing stops
   
-  ;; Strong C/C++ checking
+  ;; Strong C/C++ and Python checking configuration
   (with-eval-after-load 'flycheck
     ;; Enable all C/C++ checkers when available
     (when (executable-find "gcc")
       (setq flycheck-gcc-warnings '("all" "extra")))
     (when (executable-find "clang")
-      (setq flycheck-clang-warnings '("all" "extra"))))
-  
-  ;; Strong Python checking - use multiple checkers
-  (with-eval-after-load 'flycheck
-    (when (derived-mode-p 'python-mode)
-      ;; Enable pylint, flake8, or pyflakes if available
-      (flycheck-add-next-checker 'python-flake8 'python-pylint t))))
+      (setq flycheck-clang-warnings '("all" "extra")))))
+
+;; Strong Python checking - use multiple checkers when available
+(defun my/python-flycheck-setup ()
+  "Configure strong syntax checking for Python with multiple checkers."
+  (when (and (fboundp 'flycheck-add-next-checker)
+             (boundp 'flycheck-checker))
+    ;; Chain pylint after flake8 if both are available
+    (flycheck-add-next-checker 'python-flake8 'python-pylint t)))
+
+(add-hook 'python-mode-hook #'my/python-flycheck-setup)
 
 ;; --- Jedi Language Server (containerized) ---
 ;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
