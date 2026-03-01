@@ -290,7 +290,7 @@ Silently ignores package declarations to avoid console spam."
   ;; Add Makefile-specific completion sources
   (setq-local completion-at-point-functions
               (append
-               '(cape-file cape-dabbrev)  ; File names and words from buffer
+               (list #'cape-file #'cape-dabbrev)  ; File names and words from buffer
                completion-at-point-functions)))
 
 (add-hook 'makefile-mode-hook #'my/makefile-setup)
@@ -321,7 +321,7 @@ Silently ignores package declarations to avoid console spam."
   :config
   ;; Check syntax immediately after changes
   (setq flycheck-check-syntax-automatically '(save mode-enabled idle-change new-line)
-        flycheck-idle-change-delay 0.5)  ; Check 0.5s after typing stops
+        flycheck-idle-change-delay 1.0)  ; Check 1.0s after typing stops for better performance
   
   ;; Strong C/C++ checking - enable all warnings when available
   (when (executable-find "gcc")

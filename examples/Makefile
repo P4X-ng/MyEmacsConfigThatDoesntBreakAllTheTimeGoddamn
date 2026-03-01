@@ -28,6 +28,7 @@ clean:
 	rm -f $(OBJECTS) $(TARGET)
 
 # Install - try typing /usr/local/ and see file path completions
+# NOTE: Requires elevated privileges (sudo make install)
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/
 
