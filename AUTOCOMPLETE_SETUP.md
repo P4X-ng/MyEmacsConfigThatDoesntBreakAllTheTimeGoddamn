@@ -183,10 +183,10 @@ user.
    - Press `M-x` then type `messages` and press Enter
    - Look for LSP startup messages or errors
 
-### Completions are slow
+### Completions appear too slowly
 
-- Adjust `corfu-auto-delay` in `init.el` (currently 2.0s, decrease to 1.0 or 0.5 for faster)
-- Adjust `lsp-idle-delay` (increase from 0.3 to 0.5)
+- Adjust `corfu-auto-delay` in `init.el` (currently 2.0s, decrease to 1.0 or 0.5 for faster appearance)
+- Note: Lower values make completions appear faster but may be more distracting
 
 ### LSP not starting
 
