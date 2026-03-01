@@ -300,17 +300,21 @@ setup_openai() {
             sed -i "s/OPENAI_API_KEY=your_openai_api_key_here/OPENAI_API_KEY=$OPENAI_KEY/" "$ENV_FILE"
             success "OpenAI API key configured"
             
-            # Add to .bashrc if not already there
-            if ! grep -q "source.*\.emacs\.d/\.env" ~/.bashrc; then
+            # Add environment loading to bashrc using safer method
+            if ! grep -q "Load Emacs environment variables" ~/.bashrc; then
                 echo "" >> ~/.bashrc
                 echo "# Load Emacs environment variables" >> ~/.bashrc
                 echo "if [ -f \"$ENV_FILE\" ]; then" >> ~/.bashrc
-                echo "    export \$(grep -v '^#' \"$ENV_FILE\" | xargs)" >> ~/.bashrc
+                echo "    set -a" >> ~/.bashrc
+                echo "    source \"$ENV_FILE\"" >> ~/.bashrc
+                echo "    set +a" >> ~/.bashrc
                 echo "fi" >> ~/.bashrc
                 success "Added .env to ~/.bashrc"
                 
-                # Source for current session
-                export $(grep -v '^#' "$ENV_FILE" | xargs) 2>/dev/null || true
+                # Source for current session using safer method
+                set -a
+                source "$ENV_FILE" 2>/dev/null || true
+                set +a
             fi
             
             info "Use C-c C-g in Emacs to open GPTel chat"
@@ -392,6 +396,8 @@ main() {
     
     read -p "Continue with installation? (y/N) " -n 1 -r
     echo
+    # Validate input and default to 'N' if empty or invalid
+    REPLY="${REPLY:-N}"
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         info "Installation cancelled"
         exit 0

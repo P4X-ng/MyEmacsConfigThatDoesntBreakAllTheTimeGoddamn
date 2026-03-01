@@ -491,7 +491,7 @@ Silently ignores package declarations to avoid console spam."
     "Ask a quick question to ChatGPT and insert the answer at point."
     (interactive)
     (let ((question (read-string "Ask ChatGPT: ")))
-      (when (not (string-empty-p question))
+      (unless (string-empty-p question)
         (message "Asking ChatGPT: %s" question)
         (gptel-request
          question
@@ -523,7 +523,10 @@ Silently ignores package declarations to avoid console spam."
                      (erase-buffer)
                      (insert response)
                      (goto-char (point-min))
-                     (markdown-mode))
+                     ;; Use markdown-mode if available, otherwise use text-mode
+                     (if (fboundp 'markdown-mode)
+                         (markdown-mode)
+                       (text-mode)))
                    (display-buffer "*GPTel Explanation*")
                    (message "Explanation ready"))
                (message "Failed to get explanation from ChatGPT")))))
