@@ -988,9 +988,9 @@ Returns the parsed JSON response or signals an error on failure."
     "
 ^Navigation^        ^Editing^           ^LSP/Code^          ^Git^           ^Help^
 ^^^^^^^^---------------------------------------------------------------------------
-_f_: Find file      _s_: Search         _l_: LSP menu       _g_: Magit      _?_: Keybindings
-_b_: Switch buffer  _r_: Replace        _c_: Completion     _d_: Diff       _h_: Describe key
-_t_: Toggle tree    _u_: Undo tree      _e_: Errors list    _b_: Blame      _i_: Info
+_f_: Find file      _s_: Search         _L_: LSP menu       _g_: Magit      _?_: Keybindings
+_b_: Switch buffer  _R_: Replace        _c_: Completion     _D_: Diff       _h_: Describe key
+_t_: Toggle tree    _u_: Undo tree      _e_: Errors list    _B_: Blame      _i_: Info
 _p_: Project        _m_: Multiple cur   _d_: Definition     _l_: Log        _a_: Apropos
 _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
 "
@@ -1000,18 +1000,18 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     ("p" projectile-command-map)
     ("T" my/terminal)
     ("s" swiper)
-    ("r" query-replace)
+    ("R" query-replace)
     ("u" undo-tree-visualize)
     ("m" mc/edit-lines)
     ("/" comment-line)
-    ("l" lsp-command-map :color red)
+    ("L" lsp-command-map :color red)
     ("c" completion-at-point)
     ("e" flycheck-list-errors)
     ("d" lsp-find-definition)
     ("r" lsp-find-references)
     ("g" magit-status)
-    ("d" magit-diff)
-    ("b" magit-blame)
+    ("D" magit-diff)
+    ("B" magit-blame)
     ("l" magit-log)
     ("?" my/show-cheatsheet)
     ("h" describe-key)
