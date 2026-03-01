@@ -45,8 +45,11 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` inside Em
 - `C-c g` — Git grep (counsel)
 
 ## 🤖 GPTel / LLM Chat
-- `C-c C-g` — Launch a GPTel chat buffer
-- `C-c RET` — Send the current prompt while inside GPTel
+- `C-c C-g` — Open GPTel chat window
+- `C-c g q` — Ask quick question inline (answer inserted at cursor)
+- `C-c g e` — Explain selected code (opens in new buffer)
+- `C-c g s` — Send region/buffer to ChatGPT
+- `C-c RET` — Send prompt (when inside GPTel buffer)
 
 ## IDE Server (Python-based)
 - `C-c i c` — Send message to IDE server chat
