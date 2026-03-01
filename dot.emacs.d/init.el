@@ -136,7 +136,7 @@ Silently ignores package declarations to avoid console spam."
               (setq mode-line-format
                     (list "  "
                           mode-line-front-space
-                          "🖥️ VTERM: "
+                          "[VTERM] "
                           'default-directory
                           "  "
                           mode-line-end-spaces)))))
@@ -421,7 +421,7 @@ Silently ignores package declarations to avoid console spam."
            (make-lsp-client
             :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
             :major-modes '(python-mode python-ts-mode)
-            :priority 2  ;; Higher priority than pyright (0) and lsp-jedi (1)
+            :priority 2  ;; Higher priority than other Python LSP servers (pyright is 0)
             :server-id 'jedi-lsp-containerized
             :initialization-options (lambda () '())
             :initialized-fn (lambda (_workspace)
