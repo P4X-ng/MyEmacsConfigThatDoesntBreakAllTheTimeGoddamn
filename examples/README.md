@@ -9,6 +9,7 @@ This directory contains example files to test and demonstrate the autocompletion
 - **demo_c.c** - C example showing standard library, struct members, and custom function completions
 - **demo_bash.sh** - Bash script example showing commands, variables, and function completions
 - **demo_typescript.ts** - TypeScript example showing types, interfaces, classes, and async/await completions
+- **Makefile** - Makefile example showing variable names, targets, and file path completions
 
 ## How to Use
 
@@ -28,8 +29,9 @@ This directory contains example files to test and demonstrate the autocompletion
 
 3. Try typing the suggestions in the comments:
    - Start typing a partial identifier
-   - Completions should appear automatically after 2 characters (0.2s delay)
-   - Press TAB to accept or cycle through completions
+   - Completions should appear automatically after 2 characters (2.0s delay)
+   - Preview text (ghost text) shows inline
+   - Press TAB to accept the current completion
    - Documentation should appear next to completions after 0.5s
 
 ## What to Look For
@@ -51,6 +53,12 @@ This directory contains example files to test and demonstrate the autocompletion
 - Type `calc.` - should show class methods (add, subtract, multiply, divide)
 - Type `Math.` - should show built-in Math methods
 - Type partial function names - should complete to full function names
+
+### Makefile (Makefile)
+- Type `$(C` - should complete to variable names like `$(CC)`, `$(CFLAGS)`
+- Type `$(O` - should complete to `$(OBJECTS)`
+- Type target names - should complete to available targets (all, clean, install, test)
+- Type file paths - should show file path completions
 
 ## Troubleshooting
 
