@@ -111,11 +111,35 @@ Silently ignores package declarations to avoid console spam."
   :config
   (setq vterm-max-scrollback 10000
         vterm-buffer-name-string "vterm %s"
-        vterm-kill-buffer-on-exit t)
-  ;; Better terminal experience
+        vterm-kill-buffer-on-exit t
+        vterm-clear-scrollback-when-clearing t
+        vterm-timer-delay 0.01
+        vterm-shell (or (getenv "SHELL") "/bin/bash"))
+  
+  ;; Better terminal experience with keybindings
   (define-key vterm-mode-map (kbd "C-q") #'vterm-send-next-key)
   (define-key vterm-mode-map (kbd "M-<left>") #'tab-previous)
-  (define-key vterm-mode-map (kbd "M-<right>") #'tab-next))
+  (define-key vterm-mode-map (kbd "M-<right>") #'tab-next)
+  (define-key vterm-mode-map (kbd "C-c C-t") #'vterm-copy-mode)
+  (define-key vterm-mode-map (kbd "C-y") #'vterm-yank)
+  (define-key vterm-mode-map (kbd "M-y") #'vterm-yank-pop)
+  
+  ;; Prevent prompt overwriting by disabling certain modes in vterm
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              (setq-local global-hl-line-mode nil)
+              (setq-local scroll-margin 0)))
+  
+  ;; Make vterm buffers more recognizable
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              (setq mode-line-format
+                    (list "  "
+                          mode-line-front-space
+                          "[VTERM] "
+                          'default-directory
+                          "  "
+                          mode-line-end-spaces)))))
 
 ;; Fallback terminal for systems where vterm won't compile
 (defun my/terminal ()
@@ -150,6 +174,24 @@ Silently ignores package declarations to avoid console spam."
 (global-set-key (kbd "C-c T") #'my/terminal-here)
 (global-set-key (kbd "C-c M-t") #'my/terminal-project)
 
+;; Improve eshell as a fallback
+(use-package eshell
+  :config
+  (setq eshell-scroll-to-bottom-on-input 'all
+        eshell-error-if-no-glob t
+        eshell-hist-ignoredups t
+        eshell-save-history-on-exit t
+        eshell-prefer-lisp-functions nil
+        eshell-destroy-buffer-when-process-dies t)
+  
+  ;; Better prompt
+  (setq eshell-prompt-function
+        (lambda ()
+          (concat
+           (propertize (abbreviate-file-name (eshell/pwd)) 'face '(:foreground "green"))
+           (propertize " λ " 'face '(:foreground "cyan")))))
+  (setq eshell-prompt-regexp "^[^λ]* λ "))
+
 ;; --- Enhanced File Management ---
 (use-package dired-sidebar
   :commands dired-sidebar-toggle-sidebar
@@ -168,14 +210,29 @@ Silently ignores package declarations to avoid console spam."
 (use-package which-key
   :init (which-key-mode)
   :config
-  (setq which-key-idle-delay 0.5
+  (setq which-key-idle-delay 0.3          ; Show faster (was 0.5)
         which-key-idle-secondary-delay 0.05
         which-key-popup-type 'side-window
         which-key-side-window-location 'bottom
-        which-key-side-window-max-height 0.25
-        which-key-max-description-length 25
+        which-key-side-window-max-height 0.35  ; Show more keys (was 0.25)
+        which-key-max-description-length 35    ; Longer descriptions (was 25)
         which-key-allow-imprecise-window-fit nil
-        which-key-separator " → "))
+        which-key-separator " → "
+        which-key-add-column-padding 1
+        which-key-sort-order 'which-key-prefix-then-key-order
+        which-key-compute-remaps t
+        which-key-use-C-h-commands t)
+  
+  ;; Add prefix descriptions for better discoverability
+  (which-key-add-key-based-replacements
+    "C-c l" "LSP"
+    "C-c p" "Project"
+    "C-c v" "Python-venv"
+    "C-c i" "IDE-server"
+    "C-c r" "Context"
+    "C-c C-g" "GPTel"
+    "C-x g" "Magit"
+    "C-x p" "Project.el"))
 
 ;; --- Tab-bar mode ---
 (tab-bar-mode 1)
@@ -244,24 +301,43 @@ Silently ignores package declarations to avoid console spam."
 (use-package corfu
   :custom
   (corfu-auto t)                   ; Enable auto completion
-  (corfu-auto-delay 0.2)           ; Show completions after 0.2s
-  (corfu-auto-prefix 2)            ; Trigger after 2 characters
+  (corfu-auto-delay 0.1)           ; Show completions faster (was 0.2s)
+  (corfu-auto-prefix 1)            ; Trigger after 1 character (was 2)
   (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
-  (corfu-preview-current nil)      ; Don't preview current candidate
+  (corfu-preview-current 'insert)  ; Show preview of current candidate
   (corfu-quit-no-match 'separator) ; Quit on no match except after separator
+  (corfu-preselect 'prompt)        ; Preselect first candidate
+  (corfu-on-exact-match nil)       ; Don't auto-insert exact matches
+  (corfu-min-width 20)
+  (corfu-max-width 100)
+  (corfu-count 10)                 ; Show more candidates
   :init
   (global-corfu-mode)
-  ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
-  (global-set-key (kbd "<C-tab>") 'completion-at-point))
+  ;; Better completion keybindings
+  (global-set-key (kbd "<C-tab>") 'completion-at-point)
+  (global-set-key (kbd "M-/") 'completion-at-point)
+  :bind (:map corfu-map
+              ("TAB" . corfu-next)
+              ([tab] . corfu-next)
+              ("S-TAB" . corfu-previous)
+              ([backtab] . corfu-previous)
+              ("RET" . corfu-insert)
+              ("M-d" . corfu-show-documentation)
+              ("M-l" . corfu-show-location)))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
 (use-package corfu-popupinfo
   :after corfu
   :hook (corfu-mode . corfu-popupinfo-mode)
   :custom
-  (corfu-popupinfo-delay '(0.5 . 0.2)) ; Show doc after 0.5s, update after 0.2s
+  (corfu-popupinfo-delay '(0.3 . 0.1)) ; Show doc faster (was 0.5, 0.2)
+  (corfu-popupinfo-max-width 80)
+  (corfu-popupinfo-max-height 20)
   :config
-  (corfu-popupinfo-mode))
+  (corfu-popupinfo-mode)
+  :bind (:map corfu-map
+              ("M-p" . corfu-popupinfo-scroll-down)
+              ("M-n" . corfu-popupinfo-scroll-up)))
 
 ;; Cape: Completion At Point Extensions - adds extra completion sources
 (use-package cape
@@ -289,7 +365,37 @@ Silently ignores package declarations to avoid console spam."
 
 ;; --- Syntax checking + LSP ---
 ;; Flycheck: Real-time syntax checking
-(use-package flycheck :init (global-flycheck-mode 1))
+(use-package flycheck
+  :init (global-flycheck-mode 1)
+  :config
+  (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled)
+        flycheck-idle-change-delay 0.5
+        flycheck-display-errors-delay 0.3
+        flycheck-highlighting-mode 'symbols
+        flycheck-indication-mode 'left-fringe
+        flycheck-checker-error-threshold 1000)
+  
+  ;; Better error display in echo area
+  (setq flycheck-display-errors-function #'flycheck-display-error-messages-unless-error-list)
+  
+  ;; Define custom fringe indicators for better visibility
+  (when (fboundp 'define-fringe-bitmap)
+    (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+      [16 48 112 240 112 48 16] nil nil 'center))
+  
+  ;; Show errors in modeline
+  (setq flycheck-mode-line-prefix "✓")
+  
+  :bind (("C-c ! l" . flycheck-list-errors)
+         ("C-c ! n" . flycheck-next-error)
+         ("C-c ! p" . flycheck-previous-error)
+         ("C-c ! v" . flycheck-verify-setup)))
+
+;; Flycheck inline display - show errors right in the buffer
+(use-package flycheck-inline
+  :after flycheck
+  :config
+  (global-flycheck-inline-mode))
 
 ;; --- Jedi Language Server (containerized) ---
 ;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh
@@ -315,13 +421,14 @@ Silently ignores package declarations to avoid console spam."
            (make-lsp-client
             :new-connection (lsp-stdio-connection (lambda () my/jedi-lsp-path))
             :major-modes '(python-mode python-ts-mode)
-            :priority 1  ;; Higher priority than pyright (0)
-            :server-id 'jedi-lsp
+            :priority 2  ;; Higher priority than other Python LSP servers (pyright is 0)
+            :server-id 'jedi-lsp-containerized
             :initialization-options (lambda () '())
             :initialized-fn (lambda (_workspace)
-                              (message "[LSP] jedi-language-server initialized"))))
-          (setq my/jedi-lsp-registered t))
-      (error (message "[LSP] Failed to register jedi-language-server: %s" err)))))
+                              (message "✓ [LSP] jedi-language-server (containerized) initialized successfully"))))
+          (setq my/jedi-lsp-registered t)
+          (message "✓ [LSP] jedi-language-server client registered"))
+      (error (message "✗ [LSP] Failed to register jedi-language-server: %s" err)))))
 
 ;; Choose Python LSP: jedi (containerized) > pyright
 (defun my/python-lsp-setup ()
@@ -331,15 +438,18 @@ Silently ignores package declarations to avoid console spam."
         (my/ensure-jedi-lsp-registered)
         (cond
          ((my/jedi-lsp-available-p)
-          (message "[LSP] Using containerized jedi-language-server")
+          (message "✓ [LSP] Using containerized jedi-language-server for Python")
           (lsp))
          ((executable-find "pyright")
-          (message "[LSP] Using pyright")
+          (message "ℹ [LSP] Using pyright for Python (jedi not found)")
           (if (require 'lsp-pyright nil t)
               (lsp)
-            (message "[LSP] Failed to load lsp-pyright package")))
-         (t (message "[LSP] No Python language server found"))))
-    (error (message "[LSP] Python LSP setup failed: %s" err))))
+            (message "✗ [LSP] Failed to load lsp-pyright package")))
+         (t 
+          (message "⚠ [LSP] No Python language server found!")
+          (message "  Install jedi: Run jedi-container/setup-jedi.sh")
+          (message "  Or install pyright: pip install pyright"))))
+    (error (message "✗ [LSP] Python LSP setup failed: %s" err))))
 
 ;; LSP-mode: Language Server Protocol for intelligent code features
 ;; Provides: autocompletion, go-to-definition, find-references, documentation, etc.
@@ -352,23 +462,69 @@ Silently ignores package declarations to avoid console spam."
   :init
   (setq lsp-keymap-prefix "C-c l"
         lsp-enable-snippet t
-        lsp-idle-delay 0.3
+        lsp-idle-delay 0.2                    ; Faster LSP response (was 0.3)
         lsp-warn-no-matched-clients nil
-        ;; Improve LSP completion integration with corfu
-        lsp-completion-provider :none) ; We use corfu, not lsp's built-in completion
+        lsp-completion-provider :none         ; We use corfu
+        lsp-headerline-breadcrumb-enable t    ; Show breadcrumb
+        lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols)
+        lsp-modeline-code-actions-enable t    ; Show code actions in modeline
+        lsp-modeline-diagnostics-enable t     ; Show errors/warnings count
+        lsp-signature-auto-activate t         ; Show signature help
+        lsp-signature-render-documentation t
+        lsp-eldoc-enable-hover t
+        lsp-diagnostics-provider :flycheck)   ; Use flycheck for diagnostics
   :hook ((python-mode . my/python-lsp-setup)
-         (bash-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
-         (sh-mode . (lambda () (when (executable-find "bash-language-server") (lsp))))
-         (c-mode . (lambda () (when (executable-find "clangd") (lsp))))
-         (c++-mode . (lambda () (when (executable-find "clangd") (lsp))))
-         (c-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
-         (c++-ts-mode . (lambda () (when (executable-find "clangd") (lsp))))
-         (f90-mode . (lambda () (when (executable-find "fortls") (lsp))))
-         (fortran-mode . (lambda () (when (executable-find "fortls") (lsp))))
-         (typescript-mode . (lambda () (when (executable-find "typescript-language-server") (lsp))))
-         (js2-mode . (lambda () (when (executable-find "typescript-language-server") (lsp))))
-         (js-mode . (lambda () (when (executable-find "typescript-language-server") (lsp)))))
-  :commands lsp)
+         (bash-mode . (lambda () 
+                        (when (executable-find "bash-language-server") 
+                          (message "✓ [LSP] Starting bash-language-server")
+                          (lsp))))
+         (sh-mode . (lambda () 
+                      (when (executable-find "bash-language-server") 
+                        (message "✓ [LSP] Starting bash-language-server")
+                        (lsp))))
+         (c-mode . (lambda () 
+                     (when (executable-find "clangd") 
+                       (message "✓ [LSP] Starting clangd for C")
+                       (lsp))))
+         (c++-mode . (lambda () 
+                       (when (executable-find "clangd") 
+                         (message "✓ [LSP] Starting clangd for C++")
+                         (lsp))))
+         (c-ts-mode . (lambda () 
+                        (when (executable-find "clangd") 
+                          (message "✓ [LSP] Starting clangd for C")
+                          (lsp))))
+         (c++-ts-mode . (lambda () 
+                          (when (executable-find "clangd") 
+                            (message "✓ [LSP] Starting clangd for C++")
+                            (lsp))))
+         (f90-mode . (lambda () 
+                       (when (executable-find "fortls") 
+                         (message "✓ [LSP] Starting fortls")
+                         (lsp))))
+         (fortran-mode . (lambda () 
+                           (when (executable-find "fortls") 
+                             (message "✓ [LSP] Starting fortls")
+                             (lsp))))
+         (typescript-mode . (lambda () 
+                              (when (executable-find "typescript-language-server") 
+                                (message "✓ [LSP] Starting typescript-language-server")
+                                (lsp))))
+         (js2-mode . (lambda () 
+                       (when (executable-find "typescript-language-server") 
+                         (message "✓ [LSP] Starting typescript-language-server")
+                         (lsp))))
+         (js-mode . (lambda () 
+                      (when (executable-find "typescript-language-server") 
+                        (message "✓ [LSP] Starting typescript-language-server")
+                        (lsp)))))
+  :commands lsp
+  :bind (:map lsp-mode-map
+              ("C-c l f" . lsp-format-buffer)
+              ("C-c l r" . lsp-rename)
+              ("C-c l a" . lsp-execute-code-action)
+              ("C-c l d" . lsp-describe-thing-at-point)
+              ("C-c l i" . lsp-find-implementation)))
 
 ;; Configure LSP completion to work seamlessly with corfu
 (defun my/lsp-mode-setup-completion ()
@@ -393,7 +549,27 @@ Silently ignores package declarations to avoid console spam."
         lsp-jedi-symbols-enabled t))
 
 ;; LSP-UI: Enhanced UI features for LSP (sideline info, peek definitions, etc.)
-(use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
+(use-package lsp-ui
+  :after lsp-mode
+  :hook (lsp-mode . lsp-ui-mode)
+  :config
+  (setq lsp-ui-doc-enable t
+        lsp-ui-doc-show-with-cursor t
+        lsp-ui-doc-delay 0.5
+        lsp-ui-doc-position 'at-point
+        lsp-ui-doc-max-width 80
+        lsp-ui-doc-max-height 20
+        lsp-ui-sideline-enable t
+        lsp-ui-sideline-show-code-actions t
+        lsp-ui-sideline-show-hover t
+        lsp-ui-sideline-show-diagnostics t
+        lsp-ui-sideline-delay 0.5
+        lsp-ui-peek-enable t
+        lsp-ui-peek-show-directory t)
+  :bind (:map lsp-ui-mode-map
+              ("C-c l ." . lsp-ui-peek-find-definitions)
+              ("C-c l ?" . lsp-ui-peek-find-references)
+              ("C-c l D" . lsp-ui-doc-show)))
 
 ;; --- Git ---
 ;; --- C/C++ (Treesitter) ---
@@ -805,6 +981,100 @@ Returns the parsed JSON response or signals an error on failure."
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
+;; Add hydra for common command discovery
+(use-package hydra
+  :config
+  (defhydra hydra-main-menu (:color blue :hint nil)
+    "
+^Navigation^        ^Editing^           ^LSP/Code^          ^Git^           ^Help^
+^^^^^^^^---------------------------------------------------------------------------
+_f_: Find file      _s_: Search         _L_: LSP menu       _g_: Magit      _?_: Keybindings
+_b_: Switch buffer  _R_: Replace        _c_: Completion     _D_: Diff       _h_: Describe key
+_t_: Toggle tree    _u_: Undo tree      _e_: Errors list    _B_: Blame      _i_: Info
+_p_: Project        _m_: Multiple cur   _d_: Definition     _l_: Log        _a_: Apropos
+_T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
+"
+    ("f" counsel-find-file)
+    ("b" counsel-switch-buffer)
+    ("t" treemacs)
+    ("p" projectile-command-map)
+    ("T" my/terminal)
+    ("s" swiper)
+    ("R" query-replace)
+    ("u" undo-tree-visualize)
+    ("m" mc/edit-lines)
+    ("/" comment-line)
+    ("L" lsp-command-map :color red)
+    ("c" completion-at-point)
+    ("e" flycheck-list-errors)
+    ("d" lsp-find-definition)
+    ("r" lsp-find-references)
+    ("g" magit-status)
+    ("D" magit-diff)
+    ("B" magit-blame)
+    ("l" magit-log)
+    ("?" my/show-cheatsheet)
+    ("h" describe-key)
+    ("i" info)
+    ("a" apropos)
+    ("q" nil "quit" :color blue))
+  
+  (global-set-key (kbd "C-c m") 'hydra-main-menu/body)
+  (global-set-key (kbd "<f1>") 'hydra-main-menu/body))
+
+;; Function to list all custom keybindings
+(defun my/describe-personal-keybindings ()
+  "Display all custom keybindings defined in this configuration."
+  (interactive)
+  (with-output-to-temp-buffer "*Personal Keybindings*"
+    (princ "Personal Keybindings\n")
+    (princ "====================\n\n")
+    (princ "Press F1 or C-c m for interactive command menu (Hydra)\n\n")
+    (princ "COMPLETION & CODE:\n")
+    (princ "  C-TAB / M-/           Trigger completion manually\n")
+    (princ "  TAB                   Accept/next completion\n")
+    (princ "  S-TAB                 Previous completion\n")
+    (princ "  M-d                   Show documentation (in completion)\n")
+    (princ "  M-l                   Show location (in completion)\n\n")
+    (princ "LSP COMMANDS (C-c l prefix):\n")
+    (princ "  C-c l g g / C-c l .   Go to definition\n")
+    (princ "  C-c l g r / C-c l ?   Find references\n")
+    (princ "  C-c l r / C-c l r r   Rename symbol\n")
+    (princ "  C-c l f / C-c l =     Format buffer\n")
+    (princ "  C-c l d / C-c l D     Show documentation\n")
+    (princ "  C-c l a               Code actions\n")
+    (princ "  C-c l i               Find implementation\n\n")
+    (princ "SYNTAX CHECKING (C-c ! prefix):\n")
+    (princ "  C-c ! l               List errors\n")
+    (princ "  C-c ! n               Next error\n")
+    (princ "  C-c ! p               Previous error\n")
+    (princ "  C-c ! v               Verify setup\n\n")
+    (princ "TERMINAL:\n")
+    (princ "  C-c t                 Open terminal\n")
+    (princ "  C-c T                 Terminal in current dir\n")
+    (princ "  C-c M-t               Terminal in project root\n\n")
+    (princ "NAVIGATION:\n")
+    (princ "  F8                    Toggle Treemacs\n")
+    (princ "  C-x C-f               Find file (counsel)\n")
+    (princ "  C-c f                 Recent files\n")
+    (princ "  C-s                   Search (swiper)\n")
+    (princ "  M-x                   Command palette\n\n")
+    (princ "TABS & WINDOWS:\n")
+    (princ "  M-← / M-→             Switch tabs\n")
+    (princ "  M-t / M-w             New / Close tab\n")
+    (princ "  M-arrows              Move between windows\n")
+    (princ "  C-| / C--             Split window vert/horiz\n\n")
+    (princ "GIT:\n")
+    (princ "  C-x g                 Magit status\n\n")
+    (princ "HELP:\n")
+    (princ "  C-k                   Full cheat sheet\n")
+    (princ "  F1 / C-c m            Interactive menu (Hydra)\n")
+    (princ "  C-h k                 Describe key\n")
+    (princ "  C-h f                 Describe function\n\n")
+    (princ "See C-k for the complete cheat sheet.\n")))
+
+(global-set-key (kbd "C-h K") 'my/describe-personal-keybindings)
+
 ;; Better buffer management
 (use-package ibuffer
   :bind ("C-x C-b" . ibuffer)
@@ -848,4 +1118,60 @@ Returns the parsed JSON response or signals an error on failure."
 (setq warning-minimum-level :error)  ; Only show actual errors, not warnings
 (setq byte-compile-warnings '(not obsolete))
 
-(message "✅ Enhanced Emacs IDE ready! Press C-k for keybindings cheat sheet.")
+;; Enhanced startup message
+(defun my/show-startup-info ()
+  "Display helpful startup information."
+  (let ((lsp-servers '())
+        (missing-servers '()))
+    ;; Check for language servers
+    (when (executable-find "clangd")
+      (push "C/C++ (clangd)" lsp-servers))
+    (unless (executable-find "clangd")
+      (push "C/C++ (install: sudo apt install clangd)" missing-servers))
+    
+    (when (executable-find "bash-language-server")
+      (push "Bash (bash-language-server)" lsp-servers))
+    (unless (executable-find "bash-language-server")
+      (push "Bash (install: npm install -g bash-language-server)" missing-servers))
+    
+    (when (executable-find "typescript-language-server")
+      (push "TypeScript/JS (typescript-language-server)" lsp-servers))
+    (unless (executable-find "typescript-language-server")
+      (push "TypeScript/JS (install: npm install -g typescript-language-server typescript)" missing-servers))
+    
+    (when (my/jedi-lsp-available-p)
+      (push "Python (Jedi - containerized)" lsp-servers))
+    (when (and (not (my/jedi-lsp-available-p)) (executable-find "pyright"))
+      (push "Python (pyright)" lsp-servers))
+    (when (and (not (my/jedi-lsp-available-p)) (not (executable-find "pyright")))
+      (push "Python (install jedi: see jedi-container/setup-jedi.sh or pip install pyright)" missing-servers))
+    
+    (message "========================================")
+    (message "✅ Enhanced Emacs IDE Ready!")
+    (message "========================================")
+    (message "Press F1 or C-c m for interactive command menu")
+    (message "Press C-k for full keybindings cheat sheet")
+    (message "Press C-h K for personal keybindings list")
+    (message "")
+    (when lsp-servers
+      (message "✓ Available LSP servers:")
+      (dolist (server lsp-servers)
+        (message "  • %s" server)))
+    (when missing-servers
+      (message "")
+      (message "ℹ Missing LSP servers (optional):")
+      (dolist (server missing-servers)
+        (message "  ○ %s" server)))
+    (message "")
+    (message "Features:")
+    (message "  • Auto-completion (Corfu) - triggers after 1 char")
+    (message "  • Syntax checking (Flycheck) - real-time errors")
+    (message "  • Enhanced terminal (vterm) - C-c t to open")
+    (message "  • File explorer (Treemacs) - F8 to toggle")
+    (message "  • Git integration (Magit) - C-x g")
+    (message "  • Which-key hints - wait 0.3s after prefix")
+    (message "========================================")))
+
+(add-hook 'emacs-startup-hook #'my/show-startup-info)
+
+(message "✅ Enhanced Emacs IDE configuration loaded! Press C-k for keybindings.")
