@@ -52,8 +52,13 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 - **Magit**: Powerful Git interface (`C-x g`)
 
 ### AI/LLM Integration
-- **GPTel**: ChatGPT integration for AI assistance
-  - `C-c C-g`: Open GPTel chat
+- **GPTel**: Enhanced ChatGPT integration for inline AI assistance
+  - `C-c C-g`: Open GPTel chat window
+  - `C-c g q`: Ask a quick question inline (answer inserted at cursor)
+  - `C-c g e`: Explain selected code (opens explanation in new buffer)
+  - `C-c g s`: Send current region or buffer to ChatGPT
+  - Supports OpenAI API, local vLLM, and TGI backends
+  - Environment-based configuration (set `OPENAI_API_KEY` in `.env`)
 
 ### Auto-formatting
 Automatic code formatting on save (when formatters are installed):
@@ -62,6 +67,31 @@ Automatic code formatting on save (when formatters are installed):
 - C/C++: `clang-format`
 
 ## 🚀 Installation
+
+### Automated Setup (Ubuntu 24.04)
+
+The easiest way to install on Ubuntu 24.04:
+
+```bash
+# Clone the repository
+git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn.git
+cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
+
+# Run the automated setup script
+./setup-ubuntu.sh
+```
+
+The setup script will:
+- ✅ Install Emacs and all dependencies
+- ✅ Install language servers (clangd, bash-language-server, typescript-language-server, pyright)
+- ✅ Install code formatters (black, prettier, shfmt, clang-format)
+- ✅ Deploy configuration to `~/.emacs.d` using rsync
+- ✅ Setup OpenAI API integration (optional)
+- ✅ Provide clear feedback during installation
+
+**Why rsync?** The script uses rsync to intelligently synchronize files, excluding cache directories and build artifacts while preserving your settings.
+
+### Manual Installation
 
 1. Back up your existing Emacs configuration:
    ```bash
@@ -82,22 +112,54 @@ Automatic code formatting on save (when formatters are installed):
 5. (Optional) Install language servers for better code intelligence:
    ```bash
    # Python
-   pip install pyright
+   npm install -g pyright
    
    # Bash
    npm install -g bash-language-server
    
    # C/C++
    # Install clangd from your package manager
+   sudo apt install clangd  # Ubuntu/Debian
+   
+   # TypeScript/JavaScript
+   npm install -g typescript-language-server typescript
    
    # Formatters
    pip install black
    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+   npm install -g prettier
    # clang-format usually comes with clang
    ```
 
 6. (Optional) If using GUI Emacs, install fonts for icons:
    - Run `M-x all-the-icons-install-fonts`
+
+### OpenAI API Setup
+
+To enable inline AI questions and ChatGPT integration:
+
+1. Copy the environment example file:
+   ```bash
+   cp .env.example ~/.emacs.d/.env
+   ```
+
+2. Edit `~/.emacs.d/.env` and add your OpenAI API key:
+   ```bash
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+3. Get your API key from: https://platform.openai.com/api-keys
+
+4. Source the environment file (or the setup script does this automatically):
+   ```bash
+   export $(grep -v '^#' ~/.emacs.d/.env | xargs)
+   ```
+
+5. Start Emacs and use the AI features:
+   - `C-c C-g` - Open GPTel chat window
+   - `C-c g q` - Ask a quick question inline (answer inserted at cursor)
+   - `C-c g e` - Explain selected code
+   - `C-c g s` - Send region/buffer to ChatGPT
 
 ## 📖 Usage
 
@@ -133,6 +195,12 @@ After installation, you can start using Emacs with this configuration immediatel
 **Git Integration**:
 - `C-x g` to open Magit status
 - Use Magit's intuitive interface for commits, pushes, pulls, and more
+
+**AI Assistant**:
+- `C-c C-g` - Open GPTel chat window
+- `C-c g q` - Ask a quick inline question (answer inserted at cursor)
+- `C-c g e` - Explain selected code
+- `C-c g s` - Send region/buffer to ChatGPT
 
 **Getting Help**:
 - `C-k` - Show the keybinding cheat sheet
@@ -192,6 +260,14 @@ While this configuration doesn't use heavy project management, you can still wor
 | Keybinding | Action |
 |------------|--------|
 | `C-x g` | Magit status |
+
+### AI Assistant
+| Keybinding | Action |
+|------------|--------|
+| `C-c C-g` | Open GPTel chat |
+| `C-c g q` | Ask inline question |
+| `C-c g e` | Explain selected code |
+| `C-c g s` | Send to ChatGPT |
 
 ### LSP
 | Keybinding | Action |
@@ -322,6 +398,26 @@ See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 
 ## Quick Start
 
+### Automated Installation (Recommended for Ubuntu 24.04)
+
+```bash
+# Clone the repository
+git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn.git
+cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
+
+# Run automated setup script (handles everything!)
+./setup-ubuntu.sh
+```
+
+The setup script automatically installs:
+- Emacs and all dependencies
+- Language servers (clangd, bash-language-server, typescript-language-server, pyright)
+- Code formatters (black, prettier, shfmt, clang-format)
+- Configuration deployment to ~/.emacs.d via rsync
+- Optional OpenAI API integration
+
+### Manual Installation
+
 ### 1. Install Emacs
 ```bash
 sudo apt update
@@ -334,12 +430,16 @@ git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddam
 cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
 ```
 
-### 3. Link Configuration
+### 3. Deploy Configuration
 ```bash
 # Backup existing config if you have one
 mv ~/.emacs.d ~/.emacs.d.backup
 
-# Create symlink to this config
+# Use rsync to deploy (recommended)
+rsync -av --exclude='.git*' --exclude='straight/' --exclude='.cache/' \
+      dot.emacs.d/ ~/.emacs.d/
+
+# Or create symlink
 ln -s $(pwd)/dot.emacs.d ~/.emacs.d
 ```
 
