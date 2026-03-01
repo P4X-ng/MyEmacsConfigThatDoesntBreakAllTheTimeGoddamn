@@ -256,8 +256,8 @@ Silently ignores package declarations to avoid console spam."
   (global-set-key (kbd "<C-tab>") 'completion-at-point)
   :bind
   (:map corfu-map
-        ("TAB" . corfu-complete)    ; Use TAB to accept current completion
-        ([tab] . corfu-complete)    ; Also bind the tab key
+        ("TAB" . corfu-insert)      ; Use TAB to accept and insert current completion
+        ([tab] . corfu-insert)      ; Also bind the tab key
         ("S-TAB" . corfu-previous)  ; Use Shift-TAB to cycle backwards
         ([backtab] . corfu-previous)
         ("RET" . corfu-insert))     ; Use RET to insert the selected completion
@@ -323,13 +323,11 @@ Silently ignores package declarations to avoid console spam."
   (setq flycheck-check-syntax-automatically '(save mode-enabled idle-change new-line)
         flycheck-idle-change-delay 0.5)  ; Check 0.5s after typing stops
   
-  ;; Strong C/C++ and Python checking configuration
-  (with-eval-after-load 'flycheck
-    ;; Enable all C/C++ checkers when available
-    (when (executable-find "gcc")
-      (setq flycheck-gcc-warnings '("all" "extra")))
-    (when (executable-find "clang")
-      (setq flycheck-clang-warnings '("all" "extra")))))
+  ;; Strong C/C++ checking - enable all warnings when available
+  (when (executable-find "gcc")
+    (setq flycheck-gcc-warnings '("all" "extra")))
+  (when (executable-find "clang")
+    (setq flycheck-clang-warnings '("all" "extra"))))
 
 ;; Strong Python checking - use multiple checkers when available
 (defun my/python-flycheck-setup ()
