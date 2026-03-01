@@ -287,6 +287,14 @@ A modern, terminal-friendly Emacs IDE configuration with comprehensive autocompl
 - ✅ Suppressed unnecessary warnings
 - ✅ Ensured reliable startup even without optional packages
 
+**Recent Feature Improvements:**
+- ✅ Enhanced code completion - faster, more aggressive (triggers after 1 char)
+- ✅ Better command discovery - Interactive Hydra menu (F1), improved which-key
+- ✅ Visible syntax checking - Inline errors, better notifications
+- ✅ Improved shell - Better vterm, no prompt overwriting, copy mode
+- ✅ Python Jedi improvements - Clear status messages, better registration
+
+See [FEATURE_IMPROVEMENTS.md](FEATURE_IMPROVEMENTS.md) for detailed feature enhancements.
 See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 
 ## Features
@@ -372,6 +380,7 @@ First launch will install all packages automatically (takes a few minutes).
 
 ## Documentation
 
+- **[FEATURE_IMPROVEMENTS.md](FEATURE_IMPROVEMENTS.md)** - Recent feature enhancements and improvements
 - **[AUTOCOMPLETE_SETUP.md](AUTOCOMPLETE_SETUP.md)** - Comprehensive setup guide for Ubuntu 24.04
 - **[AUTOCOMPLETE_SUMMARY.md](AUTOCOMPLETE_SUMMARY.md)** - Feature overview and quick reference
 - **[dot.emacs.d/README.cheatsheet.md](dot.emacs.d/README.cheatsheet.md)** - Keybinding reference
@@ -393,19 +402,37 @@ Follow the comments in each file for what to type to trigger completions.
 
 ## Key Bindings
 
+### Quick Access to Help
+- **F1 or C-c m** - Interactive command menu (Hydra) - **NEW!**
+- **C-k** - Full keybindings cheat sheet
+- **C-h K** - Personal keybindings reference - **NEW!**
+
 ### Autocompletion
-- Completions appear **automatically** after typing 2 characters
+- Completions appear **automatically** after typing 1 character (improved!)
 - **TAB** - Accept or cycle forward
 - **S-TAB** - Cycle backward
+- **M-d** - Show documentation (in completion) - **NEW!**
+- **M-l** - Show location (in completion) - **NEW!**
 - **RET** - Insert completion
 - **ESC** - Cancel
+- **C-TAB or M-/** - Manual completion trigger
 
 ### LSP Commands (C-c l prefix)
 - **C-c l g g** - Go to definition
 - **C-c l g r** - Find references
-- **C-c l r r** - Rename symbol
-- **C-c l h h** - Show documentation
-- **C-c l =** - Format code
+- **C-c l .** - Peek definition - **NEW!**
+- **C-c l ?** - Peek references - **NEW!**
+- **C-c l r** - Rename symbol
+- **C-c l f** - Format buffer - **NEW!**
+- **C-c l a** - Code actions - **NEW!**
+- **C-c l D** - Show documentation - **NEW!**
+- **C-c l i** - Find implementation - **NEW!**
+
+### Syntax Checking (C-c ! prefix) - **NEW!**
+- **C-c ! l** - List all errors
+- **C-c ! n** - Next error
+- **C-c ! p** - Previous error
+- **C-c ! v** - Verify Flycheck setup
 
 ### Navigation
 - **F8** - Toggle file explorer (Treemacs)
@@ -413,11 +440,21 @@ Follow the comments in each file for what to type to trigger completions.
 - **M-t** - New tab
 - **M-w** - Close tab
 
+### Terminal - **IMPROVED!**
+- **C-c t** - Open terminal
+- **C-c T** - Terminal in current directory
+- **C-c M-t** - Terminal in project root
+- **C-c C-t** - Toggle copy mode (in vterm)
+
 ### Git
 - **C-x g** - Open Magit status
 
-### Help
-- **C-k** - Show keybinding cheat sheet
+### Help - **ENHANCED!**
+- **F1 or C-c m** - Interactive menu (discover commands easily!)
+- **C-k** - Show full keybinding cheat sheet
+- **C-h K** - Show personal keybindings
+- **C-h k** - Describe what a specific key does
+- **C-h f** - Describe a function
 
 ## Configuration Structure
 
