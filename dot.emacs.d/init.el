@@ -458,18 +458,85 @@ Silently ignores package declarations to avoid console spam."
         treemacs-eldoc-display t))
 
 ;; --- GPTel (Chat / LLM) ---
+;; Enhanced OpenAI integration for inline questions
 (use-package gptel
   :init
-  (setq gptel-default-model "gpt-4o-mini")
+  ;; Set default model
+  (setq gptel-default-model (or (getenv "GPTEL_MODEL") "gpt-4o-mini"))
+  
+  ;; Configure backend based on environment
   (cond
+   ;; vLLM backend
    ((string= (or (getenv "GPTEL_BACKEND") "") "vllm")
-    (setq gptel-openai-base-url "http://localhost:8000/v1"
+    (setq gptel-openai-base-url (or (getenv "OPENAI_BASE_URL") "http://localhost:8000/v1")
           gptel-api-key (or (getenv "OPENAI_API_KEY") "local-llm-token")))
+   ;; TGI backend
    ((string= (or (getenv "GPTEL_BACKEND") "") "tgi")
-    (setq gptel-openai-base-url "http://localhost:8080/v1"
-          gptel-api-key (or (getenv "OPENAI_API_KEY") "local-llm-token"))))
+    (setq gptel-openai-base-url (or (getenv "OPENAI_BASE_URL") "http://localhost:8080/v1")
+          gptel-api-key (or (getenv "OPENAI_API_KEY") "local-llm-token")))
+   ;; Default: OpenAI (only set API key if available)
+   (t
+    (when (getenv "OPENAI_API_KEY")
+      (setq gptel-api-key (getenv "OPENAI_API_KEY")))
+    (when (getenv "OPENAI_BASE_URL")
+      (setq gptel-openai-base-url (getenv "OPENAI_BASE_URL")))))
+  
   :config
-  (global-set-key (kbd "C-c C-g") #'gptel))
+  ;; Keybindings for GPTel
+  (global-set-key (kbd "C-c C-g") #'gptel)
+  (global-set-key (kbd "C-c g s") #'gptel-send)
+  
+  ;; Custom function to ask a quick question inline
+  (defun gptel-ask-inline ()
+    "Ask a quick question to ChatGPT and insert the answer at point."
+    (interactive)
+    (let ((question (read-string "Ask ChatGPT: ")))
+      (when (not (string-empty-p question))
+        (message "Asking ChatGPT: %s" question)
+        (gptel-request
+         question
+         :callback
+         (lambda (response info)
+           (if response
+               (progn
+                 (insert "\n" response "\n")
+                 (message "Answer received from ChatGPT"))
+             (message "Failed to get response from ChatGPT")))))))
+  
+  ;; Bind inline question to C-c g q
+  (global-set-key (kbd "C-c g q") #'gptel-ask-inline)
+  
+  ;; Custom function to explain code
+  (defun gptel-explain-region ()
+    "Explain the selected code using ChatGPT."
+    (interactive)
+    (if (use-region-p)
+        (let ((code (buffer-substring-no-properties (region-beginning) (region-end))))
+          (message "Asking ChatGPT to explain code...")
+          (gptel-request
+           (format "Explain this code:\n\n```\n%s\n```" code)
+           :callback
+           (lambda (response info)
+             (if response
+                 (progn
+                   (with-current-buffer (get-buffer-create "*GPTel Explanation*")
+                     (erase-buffer)
+                     (insert response)
+                     (goto-char (point-min))
+                     (markdown-mode))
+                   (display-buffer "*GPTel Explanation*")
+                   (message "Explanation ready"))
+               (message "Failed to get explanation from ChatGPT")))))
+      (message "No region selected")))
+  
+  ;; Bind code explanation to C-c g e
+  (global-set-key (kbd "C-c g e") #'gptel-explain-region)
+  
+  ;; Display helpful message if API key is not set
+  (unless (or (getenv "OPENAI_API_KEY") 
+              (string= (or (getenv "GPTEL_BACKEND") "") "vllm")
+              (string= (or (getenv "GPTEL_BACKEND") "") "tgi"))
+    (message "GPTel: OpenAI API key not set. Set OPENAI_API_KEY environment variable to use AI features.")))
 
 ;; --- IDE Server Integration ---
 (defvar ide-server-url "http://127.0.0.1:9999"
