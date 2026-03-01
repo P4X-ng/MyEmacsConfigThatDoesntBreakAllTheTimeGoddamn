@@ -8,8 +8,10 @@ This document summarizes the autocompletion enhancements added to the Emacs conf
 
 1. **Corfu** (enhanced configuration)
    - Auto-completion that shows while typing
-   - Triggers after 2 characters with 0.2s delay
-   - Smooth cycling through completions with TAB/S-TAB
+   - Triggers after 2 characters with 2.0s delay (configurable)
+   - Preview of current candidate shown inline (ghost text)
+   - TAB key accepts the current completion
+   - Smooth cycling through completions with arrow keys
    - Smart quit behavior
 
 2. **Corfu-popupinfo** (NEW)
@@ -123,7 +125,8 @@ bash-language-server --version
   - In Bash: `ech` or variable names
 
 3. Watch for:
-  - Completion popup appearing after 2 characters
+  - Completion popup appearing after 2 characters and 2 seconds
+  - Preview text shown inline (ghost text)
   - Documentation popup after 0.5 seconds
   - Icons showing completion types
 
@@ -149,15 +152,17 @@ See `AUTOCOMPLETE_SETUP.md` for detailed troubleshooting.
 
 ## Performance Notes
 
-- Completions trigger after **0.2 seconds** of inactivity
+- Completions trigger after **2.0 seconds** of inactivity (configurable)
+- Preview text shows inline as you type (ghost text)
 - Documentation appears after **0.5 seconds**
 - LSP idle delay is **0.3 seconds**
 
 These values can be adjusted in `init.el` if you want faster/slower behavior:
-- `corfu-auto-delay` - Completion popup delay
-- `corfu-auto-prefix` - Minimum characters to trigger
-- `lsp-idle-delay` - LSP processing delay
-- `corfu-popupinfo-delay` - Documentation popup delay
+- `corfu-auto-delay` - Completion popup delay (currently 2.0s)
+- `corfu-auto-prefix` - Minimum characters to trigger (currently 2)
+- `lsp-idle-delay` - LSP processing delay (0.3s)
+- `corfu-popupinfo-delay` - Documentation popup delay (0.5s)
+- `corfu-preview-current` - Enable/disable preview (currently 'insert)
 
 ## Additional Resources
 

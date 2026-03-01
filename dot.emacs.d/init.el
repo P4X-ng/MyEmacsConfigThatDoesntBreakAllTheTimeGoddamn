@@ -244,15 +244,26 @@ Silently ignores package declarations to avoid console spam."
 (use-package corfu
   :custom
   (corfu-auto t)                   ; Enable auto completion
-  (corfu-auto-delay 0.2)           ; Show completions after 0.2s
+  (corfu-auto-delay 2.0)           ; Show completions after 2.0s
   (corfu-auto-prefix 2)            ; Trigger after 2 characters
   (corfu-cycle t)                  ; Enable cycling for `corfu-next/previous`
-  (corfu-preview-current nil)      ; Don't preview current candidate
+  (corfu-preview-current 'insert)  ; Preview current candidate inline (ghost text)
   (corfu-quit-no-match 'separator) ; Quit on no match except after separator
+  (corfu-preselect 'prompt)        ; Preselect the prompt (first candidate)
   :init
   (global-corfu-mode)
   ;; Ctrl+Tab for manual completion trigger (especially useful for C/C++)
-  (global-set-key (kbd "<C-tab>") 'completion-at-point))
+  (global-set-key (kbd "<C-tab>") 'completion-at-point)
+  :bind
+  (:map corfu-map
+        ("TAB" . corfu-insert)      ; Use TAB to accept and insert current completion
+        ([tab] . corfu-insert)      ; Also bind the tab key
+        ("S-TAB" . corfu-previous)  ; Use Shift-TAB to cycle backwards
+        ([backtab] . corfu-previous)
+        ("RET" . corfu-insert))     ; Use RET to insert the selected completion
+  :config
+  ;; Enable TAB completion - complete if only one match, otherwise cycle
+  (setq tab-always-indent 'complete))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
 (use-package corfu-popupinfo
@@ -271,6 +282,21 @@ Silently ignores package declarations to avoid console spam."
   (add-to-list 'completion-at-point-functions #'cape-file)     ; File paths
   (add-to-list 'completion-at-point-functions #'cape-keyword)) ; Programming language keywords
 
+;; Makefile mode autocomplete support
+(defun my/makefile-setup ()
+  "Setup completion and indentation for Makefile mode."
+  ;; Use tabs for indentation (required for Makefiles)
+  (setq indent-tabs-mode t)
+  ;; Add Makefile-specific completion sources
+  (setq-local completion-at-point-functions
+              (append
+               (list #'cape-file #'cape-dabbrev)  ; File names and words from buffer
+               completion-at-point-functions)))
+
+(add-hook 'makefile-mode-hook #'my/makefile-setup)
+(add-hook 'makefile-gmake-mode-hook #'my/makefile-setup)
+(add-hook 'makefile-bsdmake-mode-hook #'my/makefile-setup)
+
 ;; Kind-icon: Add icons to completion candidates showing their type
 (use-package kind-icon
   :after corfu
@@ -288,8 +314,30 @@ Silently ignores package declarations to avoid console spam."
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;; --- Syntax checking + LSP ---
-;; Flycheck: Real-time syntax checking
-(use-package flycheck :init (global-flycheck-mode 1))
+;; Flycheck: Real-time syntax checking with strong checking for C and Python
+(use-package flycheck
+  :init
+  (global-flycheck-mode 1)
+  :config
+  ;; Check syntax immediately after changes
+  (setq flycheck-check-syntax-automatically '(save mode-enabled idle-change new-line)
+        flycheck-idle-change-delay 1.0)  ; Check 1.0s after typing stops for better performance
+  
+  ;; Strong C/C++ checking - enable all warnings when available
+  (when (executable-find "gcc")
+    (setq flycheck-gcc-warnings '("all" "extra")))
+  (when (executable-find "clang")
+    (setq flycheck-clang-warnings '("all" "extra"))))
+
+;; Strong Python checking - use multiple checkers when available
+(defun my/python-flycheck-setup ()
+  "Configure strong syntax checking for Python with multiple checkers."
+  (when (and (fboundp 'flycheck-add-next-checker)
+             (boundp 'flycheck-checker))
+    ;; Chain pylint after flake8 if both are available
+    (flycheck-add-next-checker 'python-flake8 'python-pylint t)))
+
+(add-hook 'python-mode-hook #'my/python-flycheck-setup)
 
 ;; --- Jedi Language Server (containerized) ---
 ;; Path to jedi-language-server installed via jedi-container/setup-jedi.sh

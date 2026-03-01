@@ -25,6 +25,7 @@ This configuration provides intelligent autocompletions for:
 - **Bash/Shell** (via bash-language-server)
 - **TypeScript/JavaScript** (via typescript-language-server)
 - **Python** (handled separately via Jedi in containerized environment)
+- **Makefiles** (via built-in completion with file paths and dynamic abbreviations)
 
 ## Language Server Installation
 
@@ -81,8 +82,9 @@ The configuration uses several packages working together:
 
 1. **Corfu**: Modern in-buffer completion popup that auto-shows while typing
    - Triggers automatically after typing 2 characters
-   - Shows completions after 0.2 seconds
-   - Press TAB to complete or cycle through options
+   - Shows completions after 2.0 seconds
+   - Preview of current candidate shown inline (ghost text)
+   - Press TAB to accept or cycle through options
 
 2. **Cape**: Provides additional completion sources
    - Dynamic abbreviations (words from open buffers)
@@ -181,10 +183,10 @@ user.
    - Press `M-x` then type `messages` and press Enter
    - Look for LSP startup messages or errors
 
-### Completions are slow
+### Completions appear too slowly
 
-- Adjust `corfu-auto-delay` in `init.el` (increase from 0.2 to 0.3 or 0.4)
-- Adjust `lsp-idle-delay` (increase from 0.3 to 0.5)
+- Adjust `corfu-auto-delay` in `init.el` (currently 2.0s, decrease to 1.0 or 0.5 for faster appearance)
+- Note: Lower values make completions appear faster but may be more distracting
 
 ### LSP not starting
 
