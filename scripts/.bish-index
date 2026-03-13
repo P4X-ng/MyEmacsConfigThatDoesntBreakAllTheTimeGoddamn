@@ -1,5 +1,5 @@
+./build-jedi.sh
+./deploy-jedi.sh
+./make-executable.sh
 ./clean-jedi.sh
 ./health-check.sh
-./make-executable.sh
-./deploy-jedi.sh
-./build-jedi.sh

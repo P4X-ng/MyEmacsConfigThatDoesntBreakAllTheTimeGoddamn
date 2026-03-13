@@ -1,3 +1,4 @@
 ./jedi-wrapper.py
 ./pylsp-wrapper.py
+./README.md
 ./health-check.py
