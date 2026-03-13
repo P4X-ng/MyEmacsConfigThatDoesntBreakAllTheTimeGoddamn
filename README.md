@@ -2,7 +2,30 @@
 
 This Emacs configuration provides a VSCode-like experience with all the power of Emacs, but without the memory-heavy project management features.
 
+## 🎉 NEW: Better Shell & Enhanced Autocomplete!
+
+### ⭐ Quick Popup Shell (Like Modern IDEs)
+- Press **F9** to toggle a quick shell that slides in from the bottom
+- No more clunky eshell - get vterm or ansi-term in a convenient popup!
+- See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md) for details
+
+### ⚡ Dual Autocomplete System  
+- **Corfu** (modern, minimal) + **Company** (robust, proven)
+- Both work together for maximum reliability
+- If one doesn't work, the other will!
+- Full LSP integration for Python, C/C++, Bash, TypeScript
+
 ## 🎨 VSCode-like Features
+
+### Shell & Terminal (IMPROVED!)
+- **Shell-Pop**: Quick popup terminal (press `F9` or `` C-` ``) ⭐ NEW!
+- **vterm**: Full terminal emulation that behaves like your system shell
+- **Multiple Options**: vterm, ansi-term, or eshell (automatic fallback)
+- **Smart Launching**:
+  - `F9` - Quick popup shell (recommended!)
+  - `C-c t` - Open terminal in new buffer
+  - `C-c T` - Terminal in current directory
+  - `C-c M-t` - Terminal in project root
 
 ### Visual Experience
 - **Doom Themes**: Modern, beautiful color schemes similar to VSCode themes
@@ -17,13 +40,15 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 - **Quick File Open**: `C-c C-p` to quickly open files (VSCode-inspired)
 - **Buffer Switching**: `C-x C-b` to switch between open files (enhanced standard binding)
 
-### Code Intelligence
+### Code Intelligence (ENHANCED!)
+- **Dual Completion**: Corfu + Company work together ⭐ NEW!
 - **LSP Mode**: Language Server Protocol support for:
-  - Python (with Pyright)
+  - Python (with Jedi/Pyright)
   - Bash/Shell
   - C/C++ (with clangd)
-- **Corfu**: Auto-completion as you type (like IntelliSense)
-- **Cape**: Additional completion backends for files and words
+  - TypeScript/JavaScript
+- **Visual Completion**: Icons showing completion type (function, variable, etc.)
+- **Documentation Popups**: Inline docs with function signatures
 - **Flycheck**: Real-time syntax checking and linting
 - **LSP UI**: Inline errors, documentation, and code actions
 
@@ -52,8 +77,13 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 - **Magit**: Powerful Git interface (`C-x g`)
 
 ### AI/LLM Integration
-- **GPTel**: ChatGPT integration for AI assistance
-  - `C-c C-g`: Open GPTel chat
+- **GPTel**: Enhanced ChatGPT integration for inline AI assistance
+  - `C-c C-g`: Open GPTel chat window
+  - `C-c g q`: Ask a quick question inline (answer inserted at cursor)
+  - `C-c g e`: Explain selected code (opens explanation in new buffer)
+  - `C-c g s`: Send current region or buffer to ChatGPT
+  - Supports OpenAI API, local vLLM, and TGI backends
+  - Environment-based configuration (set `OPENAI_API_KEY` in `.env`)
 
 ### Auto-formatting
 Automatic code formatting on save (when formatters are installed):
@@ -62,6 +92,31 @@ Automatic code formatting on save (when formatters are installed):
 - C/C++: `clang-format`
 
 ## 🚀 Installation
+
+### Automated Setup (Ubuntu 24.04)
+
+The easiest way to install on Ubuntu 24.04:
+
+```bash
+# Clone the repository
+git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn.git
+cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
+
+# Run the automated setup script
+./setup-ubuntu.sh
+```
+
+The setup script will:
+- ✅ Install Emacs and all dependencies
+- ✅ Install language servers (clangd, bash-language-server, typescript-language-server, pyright)
+- ✅ Install code formatters (black, prettier, shfmt, clang-format)
+- ✅ Deploy configuration to `~/.emacs.d` using rsync
+- ✅ Setup OpenAI API integration (optional)
+- ✅ Provide clear feedback during installation
+
+**Why rsync?** The script uses rsync to intelligently synchronize files, excluding cache directories and build artifacts while preserving your settings.
+
+### Manual Installation
 
 1. Back up your existing Emacs configuration:
    ```bash
@@ -82,22 +137,54 @@ Automatic code formatting on save (when formatters are installed):
 5. (Optional) Install language servers for better code intelligence:
    ```bash
    # Python
-   pip install pyright
+   npm install -g pyright
    
    # Bash
    npm install -g bash-language-server
    
    # C/C++
    # Install clangd from your package manager
+   sudo apt install clangd  # Ubuntu/Debian
+   
+   # TypeScript/JavaScript
+   npm install -g typescript-language-server typescript
    
    # Formatters
    pip install black
    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+   npm install -g prettier
    # clang-format usually comes with clang
    ```
 
 6. (Optional) If using GUI Emacs, install fonts for icons:
    - Run `M-x all-the-icons-install-fonts`
+
+### OpenAI API Setup
+
+To enable inline AI questions and ChatGPT integration:
+
+1. Copy the environment example file:
+   ```bash
+   cp .env.example ~/.emacs.d/.env
+   ```
+
+2. Edit `~/.emacs.d/.env` and add your OpenAI API key:
+   ```bash
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+3. Get your API key from: https://platform.openai.com/api-keys
+
+4. Source the environment file (or the setup script does this automatically):
+   ```bash
+   export $(grep -v '^#' ~/.emacs.d/.env | xargs)
+   ```
+
+5. Start Emacs and use the AI features:
+   - `C-c C-g` - Open GPTel chat window
+   - `C-c g q` - Ask a quick question inline (answer inserted at cursor)
+   - `C-c g e` - Explain selected code
+   - `C-c g s` - Send region/buffer to ChatGPT
 
 ## 📖 Usage
 
@@ -134,8 +221,14 @@ After installation, you can start using Emacs with this configuration immediatel
 - `C-x g` to open Magit status
 - Use Magit's intuitive interface for commits, pushes, pulls, and more
 
+**AI Assistant**:
+- `C-c C-g` - Open GPTel chat window
+- `C-c g q` - Ask a quick inline question (answer inserted at cursor)
+- `C-c g e` - Explain selected code
+- `C-c g s` - Send region/buffer to ChatGPT
+
 **Getting Help**:
-- `C-k` - Show the keybinding cheat sheet
+- `C-k` or `M-h M-h` - Show the keybinding cheat sheet
 - `C-h k` - Describe what a key does
 - `C-h f` - Get help on any function
 
@@ -193,6 +286,14 @@ While this configuration doesn't use heavy project management, you can still wor
 |------------|--------|
 | `C-x g` | Magit status |
 
+### AI Assistant
+| Keybinding | Action |
+|------------|--------|
+| `C-c C-g` | Open GPTel chat |
+| `C-c g q` | Ask inline question |
+| `C-c g e` | Explain selected code |
+| `C-c g s` | Send to ChatGPT |
+
 ### LSP
 | Keybinding | Action |
 |------------|--------|
@@ -201,7 +302,7 @@ While this configuration doesn't use heavy project management, you can still wor
 ### Help
 | Keybinding | Action |
 |------------|--------|
-| `C-k` | Show cheat sheet |
+| `C-k` or `M-h M-h` | Show cheat sheet |
 | `C-h k` | Describe key |
 | `C-h f` | Describe function |
 
@@ -230,6 +331,9 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - `which-key` - Keybinding discovery
 - `vertico` - Vertical completion UI
 - `marginalia` - Rich completion annotations
+- **`shell-pop`** - Quick popup terminal ⭐ NEW!
+- **`company`** - Completion framework ⭐ NEW!
+- **`company-box`** - Modern UI for company ⭐ NEW!
 - `corfu` - In-buffer completion
 - `orderless` - Flexible completion style
 - `cape` - Completion backends
@@ -242,7 +346,7 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - `flycheck` - Syntax checking
 - `lsp-mode` - Language Server Protocol
 - `lsp-ui` - LSP UI enhancements
-- `lsp-pyright` - Python LSP
+- `lsp-jedi` - Python Jedi LSP
 - `treemacs` - File explorer
 - `magit` - Git interface
 - `gptel` - ChatGPT integration
@@ -254,8 +358,26 @@ The main configuration file is `dot.emacs.d/init.el`. You can customize:
 - Some features (like icons) require GUI Emacs for full effect
 - LSP features require language servers to be installed separately
 - Auto-formatting requires external formatters (black, shfmt, clang-format)
+- **Shell-pop automatically uses the best available terminal** (vterm > ansi-term > eshell)
+- **Dual autocomplete** means you always get completions (Corfu or Company)
 
 ## 🐛 Troubleshooting
+
+### Shell feels clunky or eshell not working well?
+**Solution:** Use the new shell-pop feature! Press **F9** for a quick popup terminal.
+- Much better than eshell for most use cases
+- Automatically uses vterm if available (best terminal)
+- Falls back to ansi-term if vterm won't compile
+- See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md) for details
+
+### Autocomplete not working?
+**Quick fixes:**
+1. Make sure language servers are installed (see Installation section)
+2. Check if LSP started: Look for "LSP" in the mode line
+3. Try manual trigger: Press **C-TAB** (Ctrl+Tab)
+4. Check mode: Make sure file type is detected (Python, C, Bash, etc.)
+
+**Detailed help:** See [SHELL_AND_AUTOCOMPLETE_GUIDE.md](SHELL_AND_AUTOCOMPLETE_GUIDE.md)
 
 ### Icons not showing
 Run `M-x all-the-icons-install-fonts` in GUI Emacs
@@ -287,6 +409,14 @@ A modern, terminal-friendly Emacs IDE configuration with comprehensive autocompl
 - ✅ Suppressed unnecessary warnings
 - ✅ Ensured reliable startup even without optional packages
 
+**Recent Feature Improvements:**
+- ✅ Enhanced code completion - faster, more aggressive (triggers after 1 char)
+- ✅ Better command discovery - Interactive Hydra menu (F1), improved which-key
+- ✅ Visible syntax checking - Inline errors, better notifications
+- ✅ Improved shell - Better vterm, no prompt overwriting, copy mode
+- ✅ Python Jedi improvements - Clear status messages, better registration
+
+See [FEATURE_IMPROVEMENTS.md](FEATURE_IMPROVEMENTS.md) for detailed feature enhancements.
 See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 
 ## Features
@@ -322,6 +452,26 @@ See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 
 ## Quick Start
 
+### Automated Installation (Recommended for Ubuntu 24.04)
+
+```bash
+# Clone the repository
+git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn.git
+cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
+
+# Run automated setup script (handles everything!)
+./setup-ubuntu.sh
+```
+
+The setup script automatically installs:
+- Emacs and all dependencies
+- Language servers (clangd, bash-language-server, typescript-language-server, pyright)
+- Code formatters (black, prettier, shfmt, clang-format)
+- Configuration deployment to ~/.emacs.d via rsync
+- Optional OpenAI API integration
+
+### Manual Installation
+
 ### 1. Install Emacs
 ```bash
 sudo apt update
@@ -334,12 +484,16 @@ git clone https://github.com/P4X-ng/MyEmacsConfigThatDoesntBreakAllTheTimeGoddam
 cd MyEmacsConfigThatDoesntBreakAllTheTimeGoddamn
 ```
 
-### 3. Link Configuration
+### 3. Deploy Configuration
 ```bash
 # Backup existing config if you have one
 mv ~/.emacs.d ~/.emacs.d.backup
 
-# Create symlink to this config
+# Use rsync to deploy (recommended)
+rsync -av --exclude='.git*' --exclude='straight/' --exclude='.cache/' \
+      dot.emacs.d/ ~/.emacs.d/
+
+# Or create symlink
 ln -s $(pwd)/dot.emacs.d ~/.emacs.d
 ```
 
@@ -372,6 +526,7 @@ First launch will install all packages automatically (takes a few minutes).
 
 ## Documentation
 
+- **[FEATURE_IMPROVEMENTS.md](FEATURE_IMPROVEMENTS.md)** - Recent feature enhancements and improvements
 - **[AUTOCOMPLETE_SETUP.md](AUTOCOMPLETE_SETUP.md)** - Comprehensive setup guide for Ubuntu 24.04
 - **[AUTOCOMPLETE_SUMMARY.md](AUTOCOMPLETE_SUMMARY.md)** - Feature overview and quick reference
 - **[dot.emacs.d/README.cheatsheet.md](dot.emacs.d/README.cheatsheet.md)** - Keybinding reference
@@ -393,19 +548,37 @@ Follow the comments in each file for what to type to trigger completions.
 
 ## Key Bindings
 
+### Quick Access to Help
+- **F1 or C-c m** - Interactive command menu (Hydra) - **NEW!**
+- **C-k** - Full keybindings cheat sheet
+- **C-h K** - Personal keybindings reference - **NEW!**
+
 ### Autocompletion
-- Completions appear **automatically** after typing 2 characters
+- Completions appear **automatically** after typing 1 character (improved!)
 - **TAB** - Accept or cycle forward
 - **S-TAB** - Cycle backward
+- **M-d** - Show documentation (in completion) - **NEW!**
+- **M-l** - Show location (in completion) - **NEW!**
 - **RET** - Insert completion
 - **ESC** - Cancel
+- **C-TAB or M-/** - Manual completion trigger
 
 ### LSP Commands (C-c l prefix)
 - **C-c l g g** - Go to definition
 - **C-c l g r** - Find references
-- **C-c l r r** - Rename symbol
-- **C-c l h h** - Show documentation
-- **C-c l =** - Format code
+- **C-c l .** - Peek definition - **NEW!**
+- **C-c l ?** - Peek references - **NEW!**
+- **C-c l r** - Rename symbol
+- **C-c l f** - Format buffer - **NEW!**
+- **C-c l a** - Code actions - **NEW!**
+- **C-c l D** - Show documentation - **NEW!**
+- **C-c l i** - Find implementation - **NEW!**
+
+### Syntax Checking (C-c ! prefix) - **NEW!**
+- **C-c ! l** - List all errors
+- **C-c ! n** - Next error
+- **C-c ! p** - Previous error
+- **C-c ! v** - Verify Flycheck setup
 
 ### Navigation
 - **F8** - Toggle file explorer (Treemacs)
@@ -413,11 +586,17 @@ Follow the comments in each file for what to type to trigger completions.
 - **M-t** - New tab
 - **M-w** - Close tab
 
+### Terminal - **IMPROVED!**
+- **C-c t** - Open terminal
+- **C-c T** - Terminal in current directory
+- **C-c M-t** - Terminal in project root
+- **C-c C-t** - Toggle copy mode (in vterm)
+
 ### Git
 - **C-x g** - Open Magit status
 
 ### Help
-- **C-k** - Show keybinding cheat sheet
+- **C-k** or **M-h M-h** - Show keybinding cheat sheet
 
 ## Configuration Structure
 
