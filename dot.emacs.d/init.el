@@ -939,7 +939,7 @@ EXTRA-INSTRUCTIONS tailors the prompt for the file type."
                  '(cmake-mode))
               (save-buffer)
               (message "Wrote %s" ,target-file))
-          (message "Failed to generate %s" ,filename)))))
+          (message "Failed to generate %s" ,filename))))))
 
 (defun my/c-generate-makefile (description)
   "Generate a project Makefile with GPTel using DESCRIPTION."
