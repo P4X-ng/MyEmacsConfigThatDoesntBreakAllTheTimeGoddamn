@@ -15,9 +15,11 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, Any, List
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from pathlib import Path
+from collections import defaultdict
+from urllib import request, error
 
 # Module logger - configure at module level for simple server
 logger = logging.getLogger(__name__)
@@ -31,6 +33,12 @@ MAX_MESSAGE_LENGTH = 10000  # Maximum message length
 MAX_CONTEXT_DIRS = 10  # Maximum number of context directories
 MAX_REQUEST_SIZE = 1024 * 1024  # 1MB max HTTP request body size
 MAX_FILES_TO_PROCESS = 100  # Maximum files to process in search
+MAX_CONVERSATION_MESSAGES = 30  # Maximum number of messages to send to LLM API
+
+# Runtime configuration from environment
+RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("IDE_SERVER_RATE_LIMIT_MAX_REQUESTS", "100"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS", "60"))
+LLM_REQUEST_TIMEOUT_SECONDS = float(os.environ.get("IDE_SERVER_LLM_TIMEOUT_SECONDS", "30"))
 
 # Global shared state with thread safety
 _chat_manager = None
@@ -136,6 +144,83 @@ class ChatManager:
         }
         self.conversations[conv_id].append(message)
         return message
+
+    def _chat_completions_url(self) -> str:
+        """Build a chat completions URL from OPENAI_BASE_URL."""
+        base = self.base_url.strip().rstrip("/")
+        if base.endswith("/chat/completions"):
+            return base
+        if base.endswith("/v1"):
+            return f"{base}/chat/completions"
+        return f"{base}/v1/chat/completions"
+
+    def _build_llm_messages(self, conv_id: str, context: str = "") -> List[Dict[str, str]]:
+        """Build OpenAI-compatible chat messages from stored conversation."""
+        messages: List[Dict[str, str]] = []
+
+        if context and context.strip():
+            messages.append({
+                "role": "system",
+                "content": f"Use the following context when it is relevant:\n{context.strip()}"
+            })
+
+        for item in self.get_conversation(conv_id):
+            role = item.get("role")
+            content = item.get("content")
+            if role in {"user", "assistant", "system"} and isinstance(content, str):
+                messages.append({"role": role, "content": content})
+
+        if len(messages) > MAX_CONVERSATION_MESSAGES:
+            messages = messages[-MAX_CONVERSATION_MESSAGES:]
+
+        return messages
+
+    def _request_chat_completion(self, messages: List[Dict[str, str]]) -> str:
+        """Call an OpenAI-compatible chat completions endpoint."""
+        payload = {
+            "model": self.model,
+            "messages": messages,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        req = request.Request(
+            self._chat_completions_url(),
+            data=data,
+            headers=headers,
+            method="POST",
+        )
+
+        try:
+            with request.urlopen(req, timeout=LLM_REQUEST_TIMEOUT_SECONDS) as resp:
+                response_body = resp.read().decode("utf-8", errors="replace")
+        except error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            logger.error(f"LLM HTTP error {exc.code}: {error_body[:500]}")
+            raise RuntimeError(f"LLM backend returned HTTP {exc.code}") from exc
+        except error.URLError as exc:
+            logger.error(f"LLM connection error: {exc.reason}")
+            raise RuntimeError("Unable to reach LLM backend") from exc
+
+        try:
+            parsed = json.loads(response_body)
+        except json.JSONDecodeError as exc:
+            logger.error(f"Invalid JSON from LLM backend: {response_body[:500]}")
+            raise RuntimeError("LLM backend returned invalid JSON") from exc
+
+        try:
+            content = parsed["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            logger.error(f"Unexpected LLM response payload: {parsed}")
+            raise RuntimeError("LLM backend returned an unexpected response payload") from exc
+
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError("LLM backend returned an empty response")
+
+        return content.strip()
     
     def send_to_llm(self, conv_id: str, message: str, context: str = "") -> str:
         """Send message to LLM and get response."""
@@ -149,34 +234,22 @@ class ChatManager:
         # Check for API key and provide clear feedback
         if not self.api_key:
             response = (
-                "⚠️  No LLM API key configured. "
+                "No LLM API key configured. "
                 "Set OPENAI_API_KEY environment variable to enable chat. "
                 f"Your message: {message}"
             )
             logger.warning("LLM API call attempted without API key")
         else:
-            # TODO: Implement actual LLM API call here
-            # Example implementations:
-            # 
-            # For OpenAI (install: pip install openai):
-            #   import openai
-            #   client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
-            #   response = client.chat.completions.create(
-            #       model=self.model,
-            #       messages=self.get_conversation(conv_id)
-            #   )
-            #   return response.choices[0].message.content
-            #
-            # For local LLMs (vLLM, TGI compatible):
-            #   Same as OpenAI, just set OPENAI_BASE_URL to local endpoint
-            #
-            # This is a placeholder for the actual implementation
-            response = (
-                f"🤖 LLM integration placeholder (backend: {self.backend}, model: {self.model})\n"
-                f"Your message: {message}\n"
-                f"To enable full LLM functionality, implement the API call in server.py (see TODO above)"
-            )
-            logger.info(f"Placeholder LLM response generated for conversation: {conv_id}")
+            llm_messages = self._build_llm_messages(conv_id, context)
+            try:
+                response = self._request_chat_completion(llm_messages)
+            except RuntimeError as exc:
+                response = f"LLM request failed: {exc}"
+                logger.error(f"LLM request failed for conversation {conv_id}: {exc}")
+            else:
+                logger.info(
+                    f"LLM response generated (backend: {self.backend}, model: {self.model}, conv: {conv_id})"
+                )
         
         # Add assistant response
         self.add_message(conv_id, "assistant", response)
