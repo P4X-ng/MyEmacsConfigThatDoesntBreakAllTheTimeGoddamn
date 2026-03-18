@@ -25,6 +25,11 @@ projectile-bookmarks.eld
 *.log
 sync-local.sh
 
+# Local indexing/artifact files (generated, not source)
+.bish-index
+.bish.sqlite
+bfg-*.jar
+
 # Python
 __pycache__/
 *.py[cod]
