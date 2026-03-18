@@ -11,6 +11,9 @@ ide-server/*.log
 *~
 \#*\#
 .\#*
+.bish-index
+ac-comphist.dat
+eln-cache/
 
 # Straight.el build artifacts (already exists, but just in case)
 straight/
