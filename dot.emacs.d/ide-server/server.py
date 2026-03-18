@@ -25,6 +25,30 @@ import urllib.request
 # Module logger - configure at module level for simple server
 logger = logging.getLogger(__name__)
 
+
+def _env_int(name: str, default: int) -> int:
+    """Read integer environment variable with fallback."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Invalid integer for %s: %r. Using default %s.", name, raw, default)
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    """Read float environment variable with fallback."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("Invalid float for %s: %r. Using default %s.", name, raw, default)
+        return default
+
 # Constants for security and performance
 MAX_FILE_SIZE = 1024 * 1024  # 1MB max file size to read
 MAX_SEARCH_RESULTS = 20  # Maximum search results to return
@@ -34,11 +58,11 @@ MAX_MESSAGE_LENGTH = 10000  # Maximum message length
 MAX_CONTEXT_DIRS = 10  # Maximum number of context directories
 MAX_REQUEST_SIZE = 1024 * 1024  # 1MB max HTTP request body size
 MAX_FILES_TO_PROCESS = 100  # Maximum files to process in search
-LLM_REQUEST_TIMEOUT_SECONDS = int(os.environ.get("IDE_SERVER_LLM_TIMEOUT_SECONDS", "30"))
-RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("IDE_SERVER_RATE_LIMIT_MAX_REQUESTS", "100"))
-RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS", "60"))
-LLM_TEMPERATURE = float(os.environ.get("IDE_SERVER_LLM_TEMPERATURE", "0.2"))
-LLM_MAX_TOKENS = int(os.environ.get("IDE_SERVER_LLM_MAX_TOKENS", "800"))
+LLM_REQUEST_TIMEOUT_SECONDS = _env_int("IDE_SERVER_LLM_TIMEOUT_SECONDS", 30)
+RATE_LIMIT_MAX_REQUESTS = _env_int("IDE_SERVER_RATE_LIMIT_MAX_REQUESTS", 100)
+RATE_LIMIT_WINDOW_SECONDS = _env_int("IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS", 60)
+LLM_TEMPERATURE = _env_float("IDE_SERVER_LLM_TEMPERATURE", 0.2)
+LLM_MAX_TOKENS = _env_int("IDE_SERVER_LLM_MAX_TOKENS", 800)
 
 # Global shared state with thread safety
 _chat_manager = None
