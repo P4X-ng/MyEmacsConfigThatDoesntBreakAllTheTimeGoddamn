@@ -24,6 +24,8 @@ projectile-bookmarks.eld
 .docker
 *.log
 sync-local.sh
+.bish-index
+**/.bish-index
 
 # Python
 __pycache__/
