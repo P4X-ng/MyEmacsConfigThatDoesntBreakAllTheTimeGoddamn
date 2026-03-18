@@ -252,11 +252,15 @@ Silently ignores package declarations to avoid console spam."
   ;; Add prefix descriptions for better discoverability
   (which-key-add-key-based-replacements
     "C-c l" "LSP"
+    "C-c c" "C-build"
     "C-c p" "Project"
     "C-c v" "Python-venv"
     "C-c i" "IDE-server"
     "C-c r" "Context"
     "C-c C-g" "GPTel"
+    "C-c c b" "build project"
+    "C-c c c" "generate CMakeLists"
+    "C-c c m" "generate Makefile"
     "C-x g" "Magit"
     "C-x p" "Project.el"))
 
@@ -660,13 +664,43 @@ Silently ignores package declarations to avoid console spam."
               ("C-c l D" . lsp-ui-doc-show)))
 
 ;; --- Git ---
-;; --- C/C++ (Treesitter) ---
+;; --- C/C++ and CMake ---
+(defun my/c-common-setup ()
+  "Apply a consistent Linux-style editing setup for C-family buffers."
+  (setq-local indent-tabs-mode nil)
+  (setq-local tab-width 4)
+  (setq-local fill-column 100)
+  (when (derived-mode-p 'c-mode 'c++-mode)
+    (c-set-style "linux")
+    (setq-local c-basic-offset 4)))
+
+(defun my/c-ts-mode-setup ()
+  "Apply matching indentation defaults for tree-sitter C buffers."
+  (setq-local indent-tabs-mode nil)
+  (setq-local tab-width 4)
+  (setq-local fill-column 100)
+  (setq-local c-ts-mode-indent-offset 4))
+
+(setq-default c-default-style '((java-mode . "java")
+                                (awk-mode . "awk")
+                                (other . "linux"))
+              c-basic-offset 4
+              c-ts-mode-indent-offset 4)
+
+(add-hook 'c-mode-common-hook #'my/c-common-setup)
+(add-hook 'c-ts-mode-hook #'my/c-ts-mode-setup)
+(add-hook 'c++-ts-mode-hook #'my/c-ts-mode-setup)
+
 (use-package c-ts-mode
   :if (treesit-available-p)
   :mode (("\\.c\\'" . c-ts-mode)
          ("\\.h\\'" . c-ts-mode)
          ("\\.cpp\\'" . c++-ts-mode)
          ("\\.hpp\\'" . c++-ts-mode)))
+
+(use-package cmake-mode
+  :mode (("CMakeLists\\.txt\\'" . cmake-mode)
+         ("\\.cmake\\'" . cmake-mode)))
 
 ;; --- Fortran ---
 (use-package f90
@@ -818,6 +852,249 @@ Silently ignores package declarations to avoid console spam."
               (string= (or (getenv "GPTEL_BACKEND") "") "vllm")
               (string= (or (getenv "GPTEL_BACKEND") "") "tgi"))
     (message "GPTel: OpenAI API key not set. Set OPENAI_API_KEY environment variable to use AI features.")))
+
+;; --- C helper commands ---
+(defvar my/c-helper-request nil
+  "Metadata for the active GPTel C helper request.")
+
+(defun my/c-project-root ()
+  "Return the best available project root for C helper commands."
+  (or (let ((project (and (fboundp 'project-current)
+                          (ignore-errors (project-current nil)))))
+        (when project
+          (project-root project)))
+      (locate-dominating-file default-directory "CMakeLists.txt")
+      (locate-dominating-file default-directory "Makefile")
+      (locate-dominating-file default-directory ".git")
+      default-directory))
+
+(defun my/c-project-name (&optional root)
+  "Return the directory name for ROOT or the current project."
+  (file-name-nondirectory
+   (directory-file-name (file-name-as-directory (or root (my/c-project-root))))))
+
+(defun my/c-project-source-files (&optional root)
+  "Return up to 20 relative C/C++ source files under ROOT."
+  (let* ((project-root (file-name-as-directory (or root (my/c-project-root))))
+         (files (directory-files-recursively
+                 project-root
+                 "\\.\\(c\\|cc\\|cpp\\|cxx\\|h\\|hh\\|hpp\\)\\'"))
+         (collected nil)
+         (count 0))
+    (dolist (file files (nreverse collected))
+      (when (< count 20)
+        (push (file-relative-name file project-root) collected)
+        (setq count (1+ count))))))
+
+(defun my/c-project-compilation-units (&optional root)
+  "Return relative C/C++ compilation units under ROOT."
+  (let ((files (my/c-project-source-files root))
+        (units nil))
+    (dolist (file files (nreverse units))
+      (when (string-match-p "\\.\\(c\\|cc\\|cpp\\|cxx\\)\\'" file)
+        (push file units)))))
+
+(defun my/c-project-top-level-files (&optional root)
+  "Return up to 20 visible top-level entries from ROOT."
+  (let* ((project-root (file-name-as-directory (or root (my/c-project-root))))
+         (files (directory-files project-root nil "^[^.].*" t))
+         (collected nil)
+         (count 0))
+    (dolist (file files (nreverse collected))
+      (when (< count 20)
+        (push file collected)
+        (setq count (1+ count))))))
+
+(defun my/c-project-uses-cxx-p (&optional root)
+  "Return non-nil when ROOT contains C++ files."
+  (let ((files (my/c-project-compilation-units root))
+        (uses-cxx nil))
+    (while (and files (not uses-cxx))
+      (when (string-match-p "\\.\\(cc\\|cpp\\|cxx\\)\\'" (car files))
+        (setq uses-cxx t))
+      (setq files (cdr files)))
+    uses-cxx))
+
+(defun my/c--strip-code-fences (text)
+  "Remove a single surrounding Markdown code fence from TEXT."
+  (let ((clean (string-trim text)))
+    (if (and (string-prefix-p "```" clean)
+             (string-suffix-p "```" clean))
+        (mapconcat #'identity (butlast (cdr (split-string clean "\n"))) "\n")
+      clean)))
+
+(defun my/c--starter-makefile (&optional root)
+  "Return a simple starter Makefile for ROOT."
+  (let* ((project-root (file-name-as-directory (or root (my/c-project-root))))
+         (project-name (my/c-project-name project-root))
+         (units (my/c-project-compilation-units project-root))
+         (uses-cxx (my/c-project-uses-cxx-p project-root))
+         (source-list (if units
+                          (mapconcat #'identity units " ")
+                        (if uses-cxx "main.cpp" "main.c")))
+         (compiler-var (if uses-cxx "CXX" "CC"))
+         (compiler (if uses-cxx "c++" "cc"))
+         (flag-var (if uses-cxx "CXXFLAGS" "CFLAGS"))
+         (standard-flag (if uses-cxx "-std=c++17" "-std=c11")))
+    (mapconcat #'identity
+               (list (format "%s ?= %s" compiler-var compiler)
+                     (format "%s ?= -Wall -Wextra -Wpedantic %s -g"
+                             flag-var standard-flag)
+                     (format "BIN ?= %s" project-name)
+                     (format "SRC := %s" source-list)
+                     ""
+                     "all: $(BIN)"
+                     ""
+                     "$(BIN): $(SRC)"
+                     (format "\t$(%s) $(%s) $(SRC) -o $(BIN)"
+                             compiler-var flag-var)
+                     ""
+                     "clean:"
+                     "\trm -f $(BIN)"
+                     ""
+                     ".PHONY: all clean")
+               "\n")))
+
+(defun my/c--starter-cmakelists (&optional root)
+  "Return a simple starter CMakeLists.txt for ROOT."
+  (let* ((project-root (file-name-as-directory (or root (my/c-project-root))))
+         (project-name (my/c-project-name project-root))
+         (units (my/c-project-compilation-units project-root))
+         (uses-cxx (my/c-project-uses-cxx-p project-root))
+         (source-block (mapconcat #'identity
+                                  (or units
+                                      (list (if uses-cxx "main.cpp" "main.c")))
+                                  "\n  ")))
+    (mapconcat #'identity
+               (append
+                (list "cmake_minimum_required(VERSION 3.16)"
+                      (format "project(%s LANGUAGES %s)"
+                              project-name
+                              (if uses-cxx "C CXX" "C"))
+                      "")
+                (if uses-cxx
+                    (list "set(CMAKE_C_STANDARD 11)"
+                          "set(CMAKE_C_STANDARD_REQUIRED ON)"
+                          "set(CMAKE_CXX_STANDARD 17)"
+                          "set(CMAKE_CXX_STANDARD_REQUIRED ON)")
+                  (list "set(CMAKE_C_STANDARD 11)"
+                        "set(CMAKE_C_STANDARD_REQUIRED ON)"))
+                (list ""
+                      (format "add_executable(%s" project-name)
+                      (format "  %s" source-block)
+                      ")"))
+               "\n")))
+
+(defun my/c--starter-build-file (filename &optional root)
+  "Return a local starter file for FILENAME in ROOT."
+  (if (string= filename "CMakeLists.txt")
+      (my/c--starter-cmakelists root)
+    (my/c--starter-makefile root)))
+
+(defun my/c--write-build-file (target-file content)
+  "Replace TARGET-FILE with CONTENT and show the buffer."
+  (with-current-buffer (find-file-noselect target-file)
+    (erase-buffer)
+    (insert content)
+    (save-buffer)
+    (goto-char (point-min))
+    (display-buffer (current-buffer))))
+
+(defun my/c--finish-gptel-build-file (response _info)
+  "Write RESPONSE into the pending C helper target file."
+  (let* ((context my/c-helper-request)
+         (target-file (plist-get context :target-file))
+         (filename (plist-get context :filename)))
+    (setq my/c-helper-request nil)
+    (if (not response)
+        (message "Failed to generate %s" (or filename "build file"))
+      (my/c--write-build-file target-file (my/c--strip-code-fences response))
+      (message "Generated %s in %s" filename target-file))))
+
+(defun my/c--generate-build-file (filename)
+  "Generate FILENAME for the current C/C++ project."
+  (interactive)
+  (let* ((project-root (file-name-as-directory (my/c-project-root)))
+         (target-file (expand-file-name filename project-root))
+         (project-name (my/c-project-name project-root))
+         (top-level (my/c-project-top-level-files project-root))
+         (sources (my/c-project-source-files project-root))
+         (description (read-string (format "%s requirements: " filename)))
+         (top-level-text (if top-level
+                             (mapconcat (lambda (file) (format "- %s" file))
+                                        top-level "\n")
+                           "- (none detected)"))
+         (source-text (if sources
+                          (mapconcat (lambda (file) (format "- %s" file))
+                                     sources "\n")
+                        "- (no C/C++ source files detected yet)"))
+         (prompt (mapconcat
+                  #'identity
+                  (list (format "Generate a %s for a C/C++ project." filename)
+                        (format "Project name: %s" project-name)
+                        (format "Project root: %s" project-root)
+                        "Top-level files:"
+                        top-level-text
+                        "Source files:"
+                        source-text
+                        (format "User requirements: %s"
+                                (if (string-empty-p description)
+                                    "No extra requirements."
+                                  description))
+                        "Constraints:"
+                        "- Return ONLY the file contents."
+                        "- Do not use Markdown fences."
+                        "- Keep the build setup easy to understand."
+                        "- Prefer portable defaults and sensible warning flags."
+                        "- Infer a reasonable executable target name from the project name.")
+                  "\n")))
+    (when my/c-helper-request
+      (user-error "A C helper request is already in progress"))
+    (when (and (file-exists-p target-file)
+               (not (yes-or-no-p (format "Overwrite %s? " target-file))))
+      (user-error "Cancelled"))
+    (if (fboundp 'gptel-request)
+        (progn
+          (setq my/c-helper-request
+                (list :target-file target-file :filename filename))
+          (message "Requesting %s from GPTel..." filename)
+          (gptel-request prompt :callback #'my/c--finish-gptel-build-file))
+      (my/c--write-build-file target-file (my/c--starter-build-file filename project-root))
+      (message "GPTel unavailable; inserted starter %s template" filename))))
+
+(defun my/c-generate-makefile ()
+  "Generate a Makefile in the current project root."
+  (interactive)
+  (my/c--generate-build-file "Makefile"))
+
+(defun my/c-generate-cmakelists ()
+  "Generate a CMakeLists.txt in the current project root."
+  (interactive)
+  (my/c--generate-build-file "CMakeLists.txt"))
+
+(defun my/c-build-project ()
+  "Build the current C/C++ project using CMake when possible."
+  (interactive)
+  (let* ((project-root (file-name-as-directory (my/c-project-root)))
+         (default-directory project-root)
+         (command (cond
+                   ((file-exists-p (expand-file-name "build/CMakeCache.txt" project-root))
+                    "cmake --build build")
+                   ((file-exists-p (expand-file-name "CMakeLists.txt" project-root))
+                    "cmake -S . -B build && cmake --build build")
+                   ((or (file-exists-p (expand-file-name "Makefile" project-root))
+                        (file-exists-p (expand-file-name "makefile" project-root)))
+                    "make -k")
+                   (t
+                    (read-shell-command "Build command: " compile-command)))))
+    (setq compile-command command)
+    (compile command)))
+
+(define-prefix-command 'my/c-helper-map)
+(global-set-key (kbd "C-c c") 'my/c-helper-map)
+(define-key my/c-helper-map (kbd "b") #'my/c-build-project)
+(define-key my/c-helper-map (kbd "c") #'my/c-generate-cmakelists)
+(define-key my/c-helper-map (kbd "m") #'my/c-generate-makefile)
 
 ;; --- IDE Server Integration ---
 (defvar ide-server-url "http://127.0.0.1:9999"
@@ -995,8 +1272,6 @@ Returns the parsed JSON response or signals an error on failure."
               (delete-file persist)
               (let ((bak (concat persist "~")))
                 (when (file-exists-p bak) (delete-file bak)))))))))
-  (when (fboundp 'treemacs)
-    (ignore-errors (treemacs))))
 (add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
@@ -1073,26 +1348,26 @@ Returns the parsed JSON response or signals an error on failure."
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
-    (princ "🚀 Enhanced Emacs IDE Keybindings\n")
+    (princ "Enhanced Emacs IDE Keybindings\n")
     (princ "=====================================\n\n")
-    (princ "💡 Autocompletion (Corfu primary, Company fallback):\n")
-    (princ "  Auto ........... Completions appear while typing (2+ chars, Corfu)\n")
+    (princ "Autocompletion (Corfu primary, Company fallback):\n")
+    (princ "  Auto ........... Completions appear while typing (1+ chars, Corfu)\n")
     (princ "  C-TAB .......... Trigger Corfu completion manually (Ctrl+Tab)\n")
-    (princ "  M-/ ............ Trigger Company completion (alternative) ⭐ NEW!\n")
+    (princ "  M-/ ............ Trigger Company completion (alternative)\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
     (princ "  C-n / C-p ...... Next/Previous (Company when active)\n")
     (princ "  S-TAB .......... Cycle backward\n")
     (princ "  RET ............ Insert selected completion\n")
     (princ "  ESC ............ Cancel popup\n")
     (princ "  M-<digit> ...... Quick select (Company when active)\n\n")
-    (princ "🖥️  Terminal & Shell (IMPROVED!):\n")
-    (princ "  F9 ............. Quick popup shell (shell-pop) ⭐ NEW & BETTER!\n")
-    (princ "  C-backtick ..... Alternative popup shell toggle (Ctrl+`) ⭐ NEW!\n")
+    (princ "Terminal & Shell:\n")
+    (princ "  F9 ............. Quick popup shell (shell-pop)\n")
+    (princ "  C-backtick ..... Alternative popup shell toggle (Ctrl+`)\n")
     (princ "  C-c t .......... Open terminal (vterm/ansi-term/eshell)\n")
     (princ "  C-c T .......... Open terminal in current directory\n")
     (princ "  C-c M-t ........ Open terminal in project root\n")
     (princ "  \n")
-    (princ "  💡 TIP: F9 gives you a quick popup shell - much better than eshell!\n")
+    (princ "  TIP: F9 gives you a quick popup shell - much better than eshell.\n")
     (princ "      It slides in from the bottom like modern IDEs.\n\n")
     (princ "LSP Commands (C-c l prefix):\n")
     (princ "  C-c l g g ...... Go to definition\n")
@@ -1100,19 +1375,25 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c l r r ...... Rename symbol\n")
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
-    (princ "🗂️  Navigation & Files:\n")
+    (princ "C / CMake helpers (C-c c prefix):\n")
+    (princ "  C-c c b ........ Build project (CMake or Make)\n")
+    (princ "  C-c c c ........ Generate CMakeLists.txt with GPTel\n")
+    (princ "  C-c c m ........ Generate Makefile with GPTel\n")
+    (princ "  C/C++ style .... 4-space Linux-style indentation\n")
+    (princ "  CMake files .... Open automatically in cmake-mode\n\n")
+    (princ "Navigation & Files:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
     (princ "  C-c f .......... Recent files\n")
     (princ "  C-s ............ Search in buffer (swiper)\n")
     (princ "  M-x ............ Command palette (enhanced)\n\n")
-    (princ "📑 Tabs & Windows:\n")
+    (princ "Tabs & Windows:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-Arrows ....... Switch window focus\n")
     (princ "  C-| / C-- ...... Split window vertical / horizontal\n")
     (princ "  M-PgUp/PgDn .... Previous/Next tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "📦 Projects & Git:\n")
+    (princ "Projects & Git:\n")
     (princ "  C-x p .......... Project prefix (find file, switch project)\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
@@ -1132,13 +1413,13 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v a ........ Activate venv\n")
     (princ "  C-c v d ........ Deactivate venv\n")
     (princ "  C-c v s ........ Show active venv\n\n")
-    (princ "💡 Help & Discovery:\n")
+    (princ "Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
     (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key\n")
     (princ "  C-h f .......... Describe function\n")
     (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
-    (princ "✨ Quality of Life:\n")
+    (princ "Quality of Life:\n")
     (princ "  - Modern doom-one theme with enhanced modeline\n")
     (princ "  - Git gutter shows changes in fringe\n")
     (princ "  - Line highlighting and bracket matching\n")
@@ -1222,6 +1503,10 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (princ "  C-c l d / C-c l D     Show documentation\n")
     (princ "  C-c l a               Code actions\n")
     (princ "  C-c l i               Find implementation\n\n")
+    (princ "C / CMAKELISTS HELPERS (C-c c prefix):\n")
+    (princ "  C-c c b               Build project (CMake or Make)\n")
+    (princ "  C-c c c               Generate CMakeLists.txt with GPTel\n")
+    (princ "  C-c c m               Generate Makefile with GPTel\n\n")
     (princ "SYNTAX CHECKING (C-c ! prefix):\n")
     (princ "  C-c ! l               List errors\n")
     (princ "  C-c ! n               Next error\n")
@@ -1346,6 +1631,7 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (message "  • Syntax checking (Flycheck) - real-time errors")
     (message "  • Enhanced terminal (vterm) - C-c t to open")
     (message "  • File explorer (Treemacs) - F8 to toggle")
+    (message "  • C helpers (C-c c) - build, Makefile, CMakeLists.txt")
     (message "  • Git integration (Magit) - C-x g")
     (message "  • Which-key hints - wait 0.3s after prefix")
     (message "========================================")))

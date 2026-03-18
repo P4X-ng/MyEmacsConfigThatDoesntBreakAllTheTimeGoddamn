@@ -1,12 +1,12 @@
-# Autocomplete Setup Guide (Ubuntu 24.04)
+# Autocomplete and C/CMake Setup Guide (Ubuntu 24.04)
 
-This Emacs configuration provides intelligent autocompletions for C, C++, and Bash through the Language Server Protocol (LSP). 
+This Emacs configuration provides intelligent autocompletions, syntax checking, and C/CMake project helpers through the Language Server Protocol (LSP) and GPTel.
 
 **Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
 
 ## Quick Start
 
-The configuration is already set up! You just need to install the language servers for C/C++ and Bash.
+The configuration is already set up. You mainly need the language servers and build tools for the languages you use.
 
 ### Prerequisites
 
@@ -22,6 +22,7 @@ sudo apt install -y nodejs npm
 
 This configuration provides intelligent autocompletions for:
 - **C/C++** (via clangd)
+- **CMake** (via `cmake-mode` for editing plus `C-c c` helper commands for generation/building)
 - **Bash/Shell** (via bash-language-server)
 - **TypeScript/JavaScript** (via typescript-language-server)
 - **Python** (handled separately via Jedi in containerized environment)
@@ -43,6 +44,13 @@ For better C/C++ support, you may also want:
 ```bash
 # Install build essentials and C/C++ development tools
 sudo apt install -y build-essential cmake
+```
+
+If you want `clangd` to understand a project perfectly, generate a `compile_commands.json` file with CMake:
+
+```bash
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+ln -sf build/compile_commands.json compile_commands.json
 ```
 
 ### Bash (bash-language-server)
@@ -81,8 +89,8 @@ prettier --version
 The configuration uses several packages working together:
 
 1. **Corfu**: Modern in-buffer completion popup that auto-shows while typing
-   - Triggers automatically after typing 2 characters
-   - Shows completions after 2.0 seconds
+   - Triggers automatically after typing 1 character
+   - Shows completions after about 0.1 seconds
    - Preview of current candidate shown inline (ghost text)
    - Press TAB to accept or cycle through options
 
@@ -105,7 +113,7 @@ The configuration uses several packages working together:
 
 ### What You Get
 
-When you open a C or Bash file, you'll automatically get:
+When you open a C, C++, Makefile, or Bash file, you'll automatically get:
 
 - **Smart autocompletions** as you type
 - **Function signatures** and parameter hints
@@ -113,6 +121,23 @@ When you open a C or Bash file, you'll automatically get:
 - **Type information** for variables and returns
 - **Member access** completions (e.g., `struct.member`)
 - **Code snippets** (if supported by the language server)
+- **Real-time syntax checking** through Flycheck
+- **4-space Linux-style indentation defaults** for C and C++
+
+## C project helper workflow
+
+The configuration adds a dedicated `C-c c` prefix for C/C++ projects:
+
+- `C-c c b` - Build the current project
+  - Uses `cmake --build build` when an existing CMake build directory is present
+  - Uses `cmake -S . -B build && cmake --build build` when only `CMakeLists.txt` exists
+  - Falls back to `make -k` when a Makefile exists
+- `C-c c c` - Generate `CMakeLists.txt` with GPTel using the project file list as context
+- `C-c c m` - Generate `Makefile` with GPTel using the project file list as context
+
+If GPTel is unavailable, the helper commands fall back to inserting a simple starter template so you still get a usable build file.
+
+`CMakeLists.txt` and `.cmake` files open automatically in `cmake-mode`, so you get proper editing support even before adding a language server.
 
 ## Testing Your Setup
 
@@ -131,6 +156,18 @@ int main() {
     return 0;
 }
 ```
+
+### Test CMake editing support
+
+1. Open `CMakeLists.txt` or create one with `C-c c c`
+2. Confirm Emacs enters `cmake-mode`
+3. Try editing targets, `set(...)`, and `find_package(...)` forms
+
+### Test Makefile / C helper workflow
+
+1. Open a C project directory
+2. Press `C-c c m` to generate a `Makefile`, or `C-c c c` to generate `CMakeLists.txt`
+3. Press `C-c c b` to build the project from the project root
 
 ### Test Bash Completion
 
@@ -185,7 +222,7 @@ user.
 
 ### Completions appear too slowly
 
-- Adjust `corfu-auto-delay` in `init.el` (currently 2.0s, decrease to 1.0 or 0.5 for faster appearance)
+- Adjust `corfu-auto-delay` in `init.el` (currently 0.1s if you want it faster or less aggressive)
 - Note: Lower values make completions appear faster but may be more distracting
 
 ### LSP not starting
@@ -208,6 +245,11 @@ LSP commands (prefix `C-c l`):
 - `C-c l r r` - Rename symbol
 - `C-c l h h` - Show documentation (hover info)
 - `C-c l =` - Format buffer/region
+
+C project helpers (prefix `C-c c`):
+- `C-c c b` - Build project
+- `C-c c c` - Generate `CMakeLists.txt`
+- `C-c c m` - Generate `Makefile`
 
 ## Advanced Configuration
 

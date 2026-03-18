@@ -3,7 +3,7 @@
 Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
-- Completions appear **automatically** while typing (after 2 characters)
+- Completions appear **automatically** while typing (after 1 character)
 - `TAB` — Accept completion or cycle forward
 - `S-TAB` — Cycle backward through completions
 - `RET` (Enter) — Insert selected completion
@@ -39,6 +39,13 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 - `C-c l h h` — Show documentation (hover info)
 - `C-c l =` — Format buffer/region
 
+## C / CMake helpers
+- `C-c c b` — Build the current C/C++ project (`cmake --build` when possible, otherwise `make`)
+- `C-c c c` — Generate `CMakeLists.txt` with GPTel, using the current project files as context
+- `C-c c m` — Generate `Makefile` with GPTel, using the current project files as context
+- C and C++ buffers use a consistent 4-space Linux-style indentation setup
+- `CMakeLists.txt` and `.cmake` files open automatically in `cmake-mode`
+
 ## Projects & Git
 - `C-x p` — Project commands (find file, switch project, etc.)
 - `C-c g` — Git grep (counsel)
@@ -70,6 +77,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 ## Setup Notes
 See `AUTOCOMPLETE_SETUP.md` for full setup instructions including:
 - Installing language servers (pyright for Python, clangd for C/C++, bash-language-server)
+- CMake editing and build helper workflow
 - Ubuntu 24.04 specific instructions
 - Testing and troubleshooting tips
 ## IDE Features

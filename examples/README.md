@@ -10,6 +10,7 @@ This directory contains example files to test and demonstrate the autocompletion
 - **demo_bash.sh** - Bash script example showing commands, variables, and function completions
 - **demo_typescript.ts** - TypeScript example showing types, interfaces, classes, and async/await completions
 - **Makefile** - Makefile example showing variable names, targets, and file path completions
+- **CMakeLists.txt** - CMake example showing executable definitions and project settings
 
 ## How to Use
 
@@ -17,6 +18,7 @@ This directory contains example files to test and demonstrate the autocompletion
   - C/C++: `sudo apt install -y clangd`
   - Bash: `sudo npm install -g bash-language-server`
   - TypeScript/JavaScript: `sudo npm install -g typescript-language-server typescript`
+  - Build tools: `sudo apt install -y build-essential cmake`
 
 2. Open any of these demo files in Emacs:
    ```bash
@@ -29,7 +31,7 @@ This directory contains example files to test and demonstrate the autocompletion
 
 3. Try typing the suggestions in the comments:
    - Start typing a partial identifier
-   - Completions should appear automatically after 2 characters (2.0s delay)
+   - Completions should appear automatically after 1 character (about 0.1s delay)
    - Preview text (ghost text) shows inline
    - Press TAB to accept the current completion
    - Documentation should appear next to completions after 0.5s
@@ -59,6 +61,20 @@ This directory contains example files to test and demonstrate the autocompletion
 - Type `$(O` - should complete to `$(OBJECTS)`
 - Type target names - should complete to available targets (all, clean, install, test)
 - Type file paths - should show file path completions
+
+### CMake (CMakeLists.txt)
+- Open the file and confirm Emacs switches to `cmake-mode`
+- Type `add_ex` - you should be able to complete toward `add_executable`
+- Type `set(` - CMake syntax highlighting and indentation should stay consistent
+- Use `C-c c c` in a project to generate a fresh `CMakeLists.txt` with GPTel
+
+## Build helper commands
+
+For C and C++ projects, the config adds a dedicated helper prefix:
+
+- `C-c c b` - build the current project
+- `C-c c c` - generate `CMakeLists.txt`
+- `C-c c m` - generate `Makefile`
 
 ## Troubleshooting
 
