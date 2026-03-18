@@ -15,9 +15,12 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, Any, List
 import threading
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
 import logging
 from pathlib import Path
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 
 # Module logger - configure at module level for simple server
 logger = logging.getLogger(__name__)
@@ -31,6 +34,39 @@ MAX_MESSAGE_LENGTH = 10000  # Maximum message length
 MAX_CONTEXT_DIRS = 10  # Maximum number of context directories
 MAX_REQUEST_SIZE = 1024 * 1024  # 1MB max HTTP request body size
 MAX_FILES_TO_PROCESS = 100  # Maximum files to process in search
+DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+
+
+def _read_int_env(var_name: str, default: int, min_value: int, max_value: int) -> int:
+    """
+    Read an integer environment variable safely with bounds validation.
+
+    Falls back to default on parse errors or out-of-range values.
+    """
+    raw_value = os.environ.get(var_name, "").strip()
+    if not raw_value:
+        return default
+
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        logger.warning(f"Invalid int for {var_name}: {raw_value!r}. Using default {default}.")
+        return default
+
+    if parsed < min_value or parsed > max_value:
+        logger.warning(
+            f"{var_name}={parsed} out of range ({min_value}-{max_value}). "
+            f"Using default {default}."
+        )
+        return default
+
+    return parsed
+
+
+RATE_LIMIT_MAX_REQUESTS = _read_int_env("IDE_SERVER_RATE_LIMIT_MAX_REQUESTS", 100, 1, 10000)
+RATE_LIMIT_WINDOW_SECONDS = _read_int_env("IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS", 60, 1, 3600)
+LLM_REQUEST_TIMEOUT_SECONDS = _read_int_env("IDE_SERVER_LLM_TIMEOUT_SECONDS", 30, 1, 300)
+MAX_LLM_HISTORY_MESSAGES = _read_int_env("IDE_SERVER_MAX_LLM_HISTORY_MESSAGES", 20, 1, 100)
 
 # Global shared state with thread safety
 _chat_manager = None
@@ -106,9 +142,122 @@ class ChatManager:
         self.conversations: Dict[str, List[Dict[str, str]]] = {}
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
         self.backend = os.environ.get("GPTEL_BACKEND", "openai")
-        self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        self.base_url = os.environ.get("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL).rstrip('/')
         self.model = os.environ.get("GPTEL_MODEL", "gpt-4o-mini")
         logger.info(f"ChatManager initialized with backend: {self.backend}, model: {self.model}")
+
+    def _resolve_api_key(self) -> str:
+        """
+        Resolve API key for backend usage.
+
+        OpenAI endpoints require a user-supplied key. Local OpenAI-compatible
+        backends typically accept a placeholder token, which keeps setup simple.
+        """
+        if self.api_key:
+            return self.api_key
+
+        if self.backend in {"vllm", "tgi"} or self.base_url != DEFAULT_OPENAI_BASE_URL:
+            return "local-llm-token"
+
+        return ""
+
+    def _build_llm_messages(self, conv_id: str, context: str) -> List[Dict[str, str]]:
+        """Build OpenAI-compatible messages from history and optional context."""
+        messages: List[Dict[str, str]] = []
+
+        if context:
+            messages.append({
+                "role": "system",
+                "content": context[:MAX_MESSAGE_LENGTH]
+            })
+
+        history = self.get_conversation(conv_id)[-MAX_LLM_HISTORY_MESSAGES:]
+        for message in history:
+            role = message.get("role", "")
+            content = message.get("content", "")
+            if role in {"user", "assistant", "system"} and isinstance(content, str):
+                messages.append({"role": role, "content": content})
+
+        return messages
+
+    @staticmethod
+    def _extract_assistant_content(response_payload: Dict[str, Any]) -> str:
+        """Extract assistant content from a chat completion response payload."""
+        choices = response_payload.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return ""
+
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            return ""
+
+        message = first_choice.get("message", {})
+        if not isinstance(message, dict):
+            return ""
+
+        content = message.get("content", "")
+        if isinstance(content, str):
+            return content
+
+        # Some APIs return structured content chunks.
+        if isinstance(content, list):
+            parts: List[str] = []
+            for chunk in content:
+                if isinstance(chunk, dict) and isinstance(chunk.get("text"), str):
+                    parts.append(chunk["text"])
+            return "".join(parts)
+
+        return ""
+
+    def _call_chat_completion_api(self, messages: List[Dict[str, str]], api_key: str) -> str:
+        """Call an OpenAI-compatible chat completion API and return assistant text."""
+        url = f"{self.base_url}/chat/completions"
+        payload = {
+            "model": self.model,
+            "messages": messages
+        }
+        request_data = json.dumps(payload).encode("utf-8")
+
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        request = urllib_request.Request(
+            url=url,
+            data=request_data,
+            headers=headers,
+            method="POST",
+        )
+
+        try:
+            with urllib_request.urlopen(request, timeout=LLM_REQUEST_TIMEOUT_SECONDS) as response:
+                raw_response = response.read().decode("utf-8")
+        except urllib_error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace")
+            logger.error(f"LLM API HTTP error {e.code}: {error_body[:500]}")
+            return f"LLM request failed with HTTP {e.code}. Check server logs for details."
+        except urllib_error.URLError as e:
+            logger.error(f"LLM API connection error: {e}")
+            return f"LLM request failed: could not connect to {self.base_url}."
+        except TimeoutError:
+            logger.error(f"LLM API timeout after {LLM_REQUEST_TIMEOUT_SECONDS}s")
+            return f"LLM request timed out after {LLM_REQUEST_TIMEOUT_SECONDS} seconds."
+        except Exception as e:
+            logger.error(f"Unexpected LLM API error: {e}")
+            return "LLM request failed due to an unexpected error."
+
+        try:
+            parsed_response = json.loads(raw_response)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON from LLM API: {e}")
+            return "LLM response was not valid JSON."
+
+        assistant_content = self._extract_assistant_content(parsed_response)
+        if not assistant_content:
+            logger.warning(f"LLM API response missing assistant content: {parsed_response}")
+            return "LLM response did not include assistant content."
+
+        return assistant_content
     
     def get_conversation(self, conv_id: str = "default") -> List[Dict[str, str]]:
         """Get messages for a conversation."""
@@ -147,36 +296,18 @@ class ChatManager:
         self.add_message(conv_id, "user", message)
         
         # Check for API key and provide clear feedback
-        if not self.api_key:
+        api_key = self._resolve_api_key()
+        if not api_key:
             response = (
-                "⚠️  No LLM API key configured. "
+                "No LLM API key configured. "
                 "Set OPENAI_API_KEY environment variable to enable chat. "
                 f"Your message: {message}"
             )
             logger.warning("LLM API call attempted without API key")
         else:
-            # TODO: Implement actual LLM API call here
-            # Example implementations:
-            # 
-            # For OpenAI (install: pip install openai):
-            #   import openai
-            #   client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
-            #   response = client.chat.completions.create(
-            #       model=self.model,
-            #       messages=self.get_conversation(conv_id)
-            #   )
-            #   return response.choices[0].message.content
-            #
-            # For local LLMs (vLLM, TGI compatible):
-            #   Same as OpenAI, just set OPENAI_BASE_URL to local endpoint
-            #
-            # This is a placeholder for the actual implementation
-            response = (
-                f"🤖 LLM integration placeholder (backend: {self.backend}, model: {self.model})\n"
-                f"Your message: {message}\n"
-                f"To enable full LLM functionality, implement the API call in server.py (see TODO above)"
-            )
-            logger.info(f"Placeholder LLM response generated for conversation: {conv_id}")
+            llm_messages = self._build_llm_messages(conv_id, context)
+            response = self._call_chat_completion_api(llm_messages, api_key)
+            logger.info(f"LLM response generated for conversation: {conv_id}")
         
         # Add assistant response
         self.add_message(conv_id, "assistant", response)

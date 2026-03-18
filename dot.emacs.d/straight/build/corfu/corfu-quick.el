@@ -1,1 +1,0 @@
-/home/punk/.emacs.d/straight/repos/corfu/extensions/corfu-quick.el
