@@ -1271,7 +1271,7 @@ Returns the parsed JSON response or signals an error on failure."
             (ignore-errors
               (delete-file persist)
               (let ((bak (concat persist "~")))
-                (when (file-exists-p bak) (delete-file bak)))))))))
+                (when (file-exists-p bak) (delete-file bak))))))))))
 (add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
