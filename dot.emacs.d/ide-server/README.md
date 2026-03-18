@@ -7,6 +7,7 @@ A Python-based service that provides IDE features for Emacs through a simple HTT
 - **Chat Interface**: Integrate with LLMs for coding assistance
 - **Context Management**: Manage and search context directories
 - **Simple HTTP API**: Easy integration with Emacs Lisp
+- **OpenAI-compatible backend support**: Works with OpenAI, vLLM, and TGI style APIs
 
 ## Installation
 
@@ -58,6 +59,26 @@ python3 server.py --host 0.0.0.0 --port 8888
 - `GPTEL_BACKEND` - Backend to use (openai, vllm, tgi)
 - `OPENAI_BASE_URL` - Base URL for API (for custom endpoints)
 - `GPTEL_MODEL` - Model to use (default: gpt-4o-mini)
+- `IDE_SERVER_LLM_TIMEOUT_SECONDS` - HTTP timeout for LLM requests (default: 30)
+- `IDE_SERVER_LLM_TEMPERATURE` - Sampling temperature (default: 0.2)
+- `IDE_SERVER_LLM_MAX_TOKENS` - Maximum tokens per response (default: 800)
+- `IDE_SERVER_RATE_LIMIT_MAX_REQUESTS` - Max requests per client per window (default: 100)
+- `IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS` - Rate limit window in seconds (default: 60)
+
+## LLM Behavior
+
+`POST /chat/send` now performs a real OpenAI-compatible API request to:
+
+`{OPENAI_BASE_URL}/chat/completions`
+
+Behavior details:
+- Uses the stored conversation history (`user` + `assistant` turns)
+- Optionally prepends a context-aware system message when `context` is provided
+- Uses bearer token auth when `OPENAI_API_KEY` is set
+- For `openai` backend, missing API key returns a clear error response
+- For local backends (`vllm`, `tgi`), API key is optional
+
+If a request fails, the API still returns a response body with a clear error message so Emacs can continue without crashing.
 
 ## Integration with Emacs
 
