@@ -47,6 +47,7 @@ This Emacs configuration provides a VSCode-like experience with all the power of
   - Bash/Shell
   - C/C++ (with clangd)
   - TypeScript/JavaScript
+- **CMake Editing**: `cmake-mode` for `CMakeLists.txt` and `.cmake` files
 - **Visual Completion**: Icons showing completion type (function, variable, etc.)
 - **Documentation Popups**: Inline docs with function signatures
 - **Flycheck**: Real-time syntax checking and linting
@@ -82,6 +83,8 @@ This Emacs configuration provides a VSCode-like experience with all the power of
   - `C-c g q`: Ask a quick question inline (answer inserted at cursor)
   - `C-c g e`: Explain selected code (opens explanation in new buffer)
   - `C-c g s`: Send current region or buffer to ChatGPT
+  - `C-c c m`: Generate a starter `Makefile` in the current project root
+  - `C-c c c`: Generate a starter `CMakeLists.txt` in the current project root
   - Supports OpenAI API, local vLLM, and TGI backends
   - Environment-based configuration (set `OPENAI_API_KEY` in `.env`)
 
@@ -196,6 +199,7 @@ After installation, you can start using Emacs with this configuration immediatel
 2. **Open Files**: Use `C-x C-f` (standard Emacs) or `C-c C-p` (VSCode-like quick open) for file opening
 3. **File Explorer**: Press `F8` to toggle the Treemacs file explorer sidebar
 4. **Start Coding**: Open any supported file type (Python, C/C++, Bash, TypeScript/JavaScript) and LSP will activate automatically
+5. **Edit Build Files**: Open `Makefile`, `CMakeLists.txt`, or `.cmake` files for build-system-aware editing support
 
 ### Daily Usage
 
@@ -216,6 +220,7 @@ After installation, you can start using Emacs with this configuration immediatel
 - `TAB` to accept completions
 - `C-/` to comment/uncomment lines
 - `C->` / `C-<` for multiple cursors
+- `C-c c m` / `C-c c c` to generate build files for C and C++ projects
 
 **Git Integration**:
 - `C-x g` to open Magit status
@@ -779,7 +784,7 @@ You can extend the configuration by adding to these hooks:
 
 ;; Language-specific hooks
 (add-hook 'python-mode-hook 'my-python-setup)
-(add-hook 'c-mode-hook 'my-c-setup)
+(add-hook 'c-mode-common-hook 'my/c-cpp-common-setup)
 ```
 
 ### Adding New Languages

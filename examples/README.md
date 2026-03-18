@@ -29,10 +29,10 @@ This directory contains example files to test and demonstrate the autocompletion
 
 3. Try typing the suggestions in the comments:
    - Start typing a partial identifier
-   - Completions should appear automatically after 2 characters (2.0s delay)
+   - Completions should appear automatically after 1 character (0.1s delay)
    - Preview text (ghost text) shows inline
    - Press TAB to accept the current completion
-   - Documentation should appear next to completions after 0.5s
+   - Documentation should appear next to completions after about 0.3s
 
 ## What to Look For
 

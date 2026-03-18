@@ -1,15 +1,15 @@
-# 🚀 Enhanced Emacs IDE Cheat Sheet
+# Enhanced Emacs IDE Cheat Sheet
 
 Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
-- Completions appear **automatically** while typing (after 2 characters)
+- Completions appear **automatically** while typing (after 1 character)
 - `TAB` — Accept completion or cycle forward
 - `S-TAB` — Cycle backward through completions
 - `RET` (Enter) — Insert selected completion
 - `ESC` — Cancel completion popup
 
-**Documentation popups** appear next to completions after 0.5 seconds showing function signatures, type info, and docstrings.
+**Documentation popups** appear next to completions after about 0.3 seconds showing function signatures, type info, and docstrings.
 
 ## Navigation & UI
 ## 🖥️ Terminal & Shell
@@ -38,6 +38,10 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 - `C-c l r r` — Rename symbol
 - `C-c l h h` — Show documentation (hover info)
 - `C-c l =` — Format buffer/region
+
+## C/C++ Helpers
+- `C-c c m` — Generate a `Makefile` with GPTel in the current project root
+- `C-c c c` — Generate a `CMakeLists.txt` with GPTel in the current project root
 
 ## Projects & Git
 - `C-x p` — Project commands (find file, switch project, etc.)
@@ -70,6 +74,7 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 ## Setup Notes
 See `AUTOCOMPLETE_SETUP.md` for full setup instructions including:
 - Installing language servers (pyright for Python, clangd for C/C++, bash-language-server)
+- Editing `CMakeLists.txt` and `.cmake` files with `cmake-mode`
 - Ubuntu 24.04 specific instructions
 - Testing and troubleshooting tips
 ## IDE Features
@@ -88,7 +93,7 @@ Keep `init.el` handy for more advanced customization details.
 - `C-k` or `M-h M-h` — Show this cheat sheet
 - `C-h k` — Describe key
 - `C-h f` — Describe function
-- **Wait 0.5s** — Which-key popup shows available keys
+- **Wait 0.3s** — Which-key popup shows available keys
 
 ## ✨ New Features
 - **Modern doom-one theme** with enhanced modeline

@@ -1,12 +1,12 @@
 # Autocomplete Setup Guide (Ubuntu 24.04)
 
-This Emacs configuration provides intelligent autocompletions for C, C++, and Bash through the Language Server Protocol (LSP). 
+This Emacs configuration provides intelligent autocompletions for C, C++, Bash, and TypeScript/JavaScript through the Language Server Protocol (LSP), plus editing support for Makefiles and CMake files.
 
 **Note**: Python autocompletion is handled separately via Jedi in a containerized environment.
 
 ## Quick Start
 
-The configuration is already set up! You just need to install the language servers for C/C++ and Bash.
+The configuration is already set up. You only need to install the external language servers for the languages you want LSP features for.
 
 ### Prerequisites
 
@@ -26,6 +26,7 @@ This configuration provides intelligent autocompletions for:
 - **TypeScript/JavaScript** (via typescript-language-server)
 - **Python** (handled separately via Jedi in containerized environment)
 - **Makefiles** (via built-in completion with file paths and dynamic abbreviations)
+- **CMake** files (via `cmake-mode` with file/path completion helpers)
 
 ## Language Server Installation
 
@@ -81,8 +82,8 @@ prettier --version
 The configuration uses several packages working together:
 
 1. **Corfu**: Modern in-buffer completion popup that auto-shows while typing
-   - Triggers automatically after typing 2 characters
-   - Shows completions after 2.0 seconds
+   - Triggers automatically after typing 1 character
+   - Shows completions after 0.1 seconds
    - Preview of current candidate shown inline (ghost text)
    - Press TAB to accept or cycle through options
 
@@ -113,6 +114,8 @@ When you open a C or Bash file, you'll automatically get:
 - **Type information** for variables and returns
 - **Member access** completions (e.g., `struct.member`)
 - **Code snippets** (if supported by the language server)
+
+When you open a `Makefile`, `CMakeLists.txt`, or `.cmake` file, you'll also get file-path and buffer-word completions tuned for build files.
 
 ## Testing Your Setup
 
@@ -185,7 +188,7 @@ user.
 
 ### Completions appear too slowly
 
-- Adjust `corfu-auto-delay` in `init.el` (currently 2.0s, decrease to 1.0 or 0.5 for faster appearance)
+- Adjust `corfu-auto-delay` in `init.el` (currently 0.1s if you want slower or faster appearance)
 - Note: Lower values make completions appear faster but may be more distracting
 
 ### LSP not starting
@@ -208,6 +211,10 @@ LSP commands (prefix `C-c l`):
 - `C-c l r r` - Rename symbol
 - `C-c l h h` - Show documentation (hover info)
 - `C-c l =` - Format buffer/region
+
+C/C++ helpers (prefix `C-c c`):
+- `C-c c m` - Generate a starter `Makefile` with GPTel in the current project root
+- `C-c c c` - Generate a starter `CMakeLists.txt` with GPTel in the current project root
 
 ## Advanced Configuration
 

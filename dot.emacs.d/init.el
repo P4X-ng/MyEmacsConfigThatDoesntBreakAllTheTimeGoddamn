@@ -256,6 +256,7 @@ Silently ignores package declarations to avoid console spam."
     "C-c v" "Python-venv"
     "C-c i" "IDE-server"
     "C-c r" "Context"
+    "C-c c" "C/C++"
     "C-c C-g" "GPTel"
     "C-x g" "Magit"
     "C-x p" "Project.el"))
@@ -434,6 +435,22 @@ Silently ignores package declarations to avoid console spam."
 (add-hook 'makefile-mode-hook #'my/makefile-setup)
 (add-hook 'makefile-gmake-mode-hook #'my/makefile-setup)
 (add-hook 'makefile-bsdmake-mode-hook #'my/makefile-setup)
+
+(defun my/cmake-setup ()
+  "Setup completion and indentation defaults for CMake files."
+  (setq-local tab-width 4)
+  (setq-local indent-tabs-mode nil)
+  (setq-local completion-at-point-functions
+              (append
+               (list #'cape-file #'cape-dabbrev)
+               completion-at-point-functions)))
+
+(use-package cmake-mode
+  :mode (("CMakeLists\\.txt\\'" . cmake-mode)
+         ("\\.cmake\\'" . cmake-mode))
+  :hook (cmake-mode . my/cmake-setup)
+  :config
+  (setq cmake-tab-width 4))
 
 ;; Kind-icon: Add icons to completion candidates showing their type
 (use-package kind-icon
@@ -661,12 +678,34 @@ Silently ignores package declarations to avoid console spam."
 
 ;; --- Git ---
 ;; --- C/C++ (Treesitter) ---
+(defvar my/c-cpp-indent-width 4
+  "Indentation width used for C, C++, and CMake buffers.")
+
+(defun my/c-cpp-common-setup ()
+  "Apply consistent coding style defaults for C and C++ buffers."
+  (setq-local tab-width my/c-cpp-indent-width)
+  (setq-local indent-tabs-mode nil)
+  (when (boundp 'c-basic-offset)
+    (setq-local c-basic-offset my/c-cpp-indent-width))
+  (when (boundp 'c-ts-mode-indent-offset)
+    (setq-local c-ts-mode-indent-offset my/c-cpp-indent-width))
+  (when (fboundp 'c-set-style)
+    (c-set-style "linux")))
+
+(add-hook 'c-mode-common-hook #'my/c-cpp-common-setup)
+(add-hook 'c-ts-mode-hook #'my/c-cpp-common-setup)
+(add-hook 'c++-ts-mode-hook #'my/c-cpp-common-setup)
+
 (use-package c-ts-mode
   :if (treesit-available-p)
   :mode (("\\.c\\'" . c-ts-mode)
          ("\\.h\\'" . c-ts-mode)
          ("\\.cpp\\'" . c++-ts-mode)
-         ("\\.hpp\\'" . c++-ts-mode)))
+         ("\\.hpp\\'" . c++-ts-mode)
+         ("\\.cc\\'" . c++-ts-mode)
+         ("\\.cxx\\'" . c++-ts-mode)
+         ("\\.hh\\'" . c++-ts-mode)
+         ("\\.hxx\\'" . c++-ts-mode)))
 
 ;; --- Fortran ---
 (use-package f90
@@ -696,6 +735,13 @@ Silently ignores package declarations to avoid console spam."
   :ensure nil
   :config
   (setq project-vc-extra-root-markers '(".git" ".hg")))
+
+(defun my/project-root-or-default ()
+  "Return the current project root or `default-directory'."
+  (let ((project (project-current nil)))
+    (if project
+        (expand-file-name (project-root project))
+      (expand-file-name default-directory))))
 
 (use-package magit :commands magit-status :bind ("C-x g" . magit-status))
 
@@ -818,6 +864,107 @@ Silently ignores package declarations to avoid console spam."
               (string= (or (getenv "GPTEL_BACKEND") "") "vllm")
               (string= (or (getenv "GPTEL_BACKEND") "") "tgi"))
     (message "GPTel: OpenAI API key not set. Set OPENAI_API_KEY environment variable to use AI features.")))
+
+(defun my/c--project-root-entries (root)
+  "Return a short bullet list of entries in ROOT."
+  (let ((entries (sort (directory-files root nil directory-files-no-dot-files-regexp) #'string<))
+        (count 0)
+        items)
+    (dolist (entry entries)
+      (when (< count 12)
+        (push (format "- %s" entry) items)
+        (setq count (1+ count))))
+    (if items
+        (mapconcat #'identity (nreverse items) "\n")
+      "- (project root is empty)")))
+
+(defun my/c--strip-markdown-fences (text)
+  "Remove a single outer Markdown code fence from TEXT."
+  (let ((cleaned (string-trim text)))
+    (if (and (string-prefix-p "```" cleaned)
+             (string-suffix-p "```" cleaned))
+        (mapconcat #'identity
+                   (butlast (cdr (split-string cleaned "\n")))
+                   "\n")
+      cleaned)))
+
+(defun my/c--generate-build-file (filename kind description extra-instructions)
+  "Generate FILENAME for KIND using GPTel and save it in the project root.
+DESCRIPTION is the user-provided project summary.
+EXTRA-INSTRUCTIONS tailors the prompt for the file type."
+  (unless (fboundp 'gptel-request)
+    (user-error "GPTel is not available"))
+  (let* ((root (file-name-as-directory (my/project-root-or-default)))
+         (target-file (expand-file-name filename root))
+         (existing (file-exists-p target-file))
+         (project-entries (my/c--project-root-entries root))
+         (prompt (format
+                  (concat "You are generating a starter %s for a C or C++ project.\n"
+                          "Return only the file contents with no Markdown fences, no surrounding explanation, and no commentary.\n"
+                          "Project root: %s\n"
+                          "Visible files and directories:\n%s\n"
+                          "Project description:\n%s\n"
+                          "Requirements:\n"
+                          "- Use portable defaults.\n"
+                          "- Respect the visible project layout when choosing paths.\n"
+                          "- Keep the file concise but ready to extend.\n"
+                          "%s\n")
+                  kind
+                  root
+                  project-entries
+                  (if (string-empty-p (string-trim description))
+                      "No extra description provided."
+                    description)
+                  extra-instructions)))
+    (when (and existing
+               (not (y-or-n-p (format "%s already exists. Overwrite it? " filename))))
+      (user-error "Cancelled"))
+    (with-current-buffer (find-file-noselect target-file)
+      (erase-buffer)
+      (insert (format "Generating %s with GPTel...\n" filename))
+      (set-buffer-modified-p nil)
+      (display-buffer (current-buffer)))
+    (message "Generating %s..." filename)
+    (gptel-request
+     prompt
+     :callback
+     `(lambda (response info)
+        (if (and response (not (string-empty-p (string-trim response))))
+            (with-current-buffer (find-file-noselect ,target-file)
+              (erase-buffer)
+              (insert (my/c--strip-markdown-fences response))
+              (goto-char (point-min))
+              ,(if (string-equal filename "Makefile")
+                   '(makefile-gmake-mode)
+                 '(cmake-mode))
+              (save-buffer)
+              (message "Wrote %s" ,target-file))
+          (message "Failed to generate %s" ,filename)))))
+
+(defun my/c-generate-makefile (description)
+  "Generate a project Makefile with GPTel using DESCRIPTION."
+  (interactive "sDescribe the project for the Makefile: ")
+  (my/c--generate-build-file
+   "Makefile"
+   "Makefile"
+   description
+   (concat "- Include at least all and clean targets.\n"
+           "- Prefer CC/CXX/CFLAGS/CXXFLAGS/LDFLAGS style variables.\n"
+           "- If the layout is unclear, assume a small single-binary project.")))
+
+(defun my/c-generate-cmakelists (description)
+  "Generate a project CMakeLists.txt with GPTel using DESCRIPTION."
+  (interactive "sDescribe the project for CMakeLists.txt: ")
+  (my/c--generate-build-file
+   "CMakeLists.txt"
+   "CMakeLists.txt"
+   description
+   (concat "- Include cmake_minimum_required() and project().\n"
+           "- Export compile_commands.json for clangd.\n"
+           "- Prefer sensible warning flags and a debuggable default build.")))
+
+(global-set-key (kbd "C-c c m") #'my/c-generate-makefile)
+(global-set-key (kbd "C-c c c") #'my/c-generate-cmakelists)
 
 ;; --- IDE Server Integration ---
 (defvar ide-server-url "http://127.0.0.1:9999"
@@ -994,9 +1141,7 @@ Returns the parsed JSON response or signals an error on failure."
             (ignore-errors
               (delete-file persist)
               (let ((bak (concat persist "~")))
-                (when (file-exists-p bak) (delete-file bak)))))))))
-  (when (fboundp 'treemacs)
-    (ignore-errors (treemacs))))
+                (when (file-exists-p bak) (delete-file bak))))))))))
 (add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
@@ -1073,26 +1218,26 @@ Returns the parsed JSON response or signals an error on failure."
 (defun my/show-cheatsheet ()
   (interactive)
   (with-output-to-temp-buffer "*Keybindings*"
-    (princ "🚀 Enhanced Emacs IDE Keybindings\n")
+    (princ "Enhanced Emacs IDE Keybindings\n")
     (princ "=====================================\n\n")
-    (princ "💡 Autocompletion (Corfu primary, Company fallback):\n")
-    (princ "  Auto ........... Completions appear while typing (2+ chars, Corfu)\n")
+    (princ "Autocompletion (Corfu primary, Company fallback):\n")
+    (princ "  Auto ........... Completions appear while typing (1+ char, Corfu)\n")
     (princ "  C-TAB .......... Trigger Corfu completion manually (Ctrl+Tab)\n")
-    (princ "  M-/ ............ Trigger Company completion (alternative) ⭐ NEW!\n")
+    (princ "  M-/ ............ Trigger Company completion (alternative)\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
     (princ "  C-n / C-p ...... Next/Previous (Company when active)\n")
     (princ "  S-TAB .......... Cycle backward\n")
     (princ "  RET ............ Insert selected completion\n")
     (princ "  ESC ............ Cancel popup\n")
     (princ "  M-<digit> ...... Quick select (Company when active)\n\n")
-    (princ "🖥️  Terminal & Shell (IMPROVED!):\n")
-    (princ "  F9 ............. Quick popup shell (shell-pop) ⭐ NEW & BETTER!\n")
-    (princ "  C-backtick ..... Alternative popup shell toggle (Ctrl+`) ⭐ NEW!\n")
+    (princ "Terminal & Shell:\n")
+    (princ "  F9 ............. Quick popup shell (shell-pop)\n")
+    (princ "  C-backtick ..... Alternative popup shell toggle (Ctrl+`)\n")
     (princ "  C-c t .......... Open terminal (vterm/ansi-term/eshell)\n")
     (princ "  C-c T .......... Open terminal in current directory\n")
     (princ "  C-c M-t ........ Open terminal in project root\n")
     (princ "  \n")
-    (princ "  💡 TIP: F9 gives you a quick popup shell - much better than eshell!\n")
+    (princ "  TIP: F9 gives you a quick popup shell with minimal window churn.\n")
     (princ "      It slides in from the bottom like modern IDEs.\n\n")
     (princ "LSP Commands (C-c l prefix):\n")
     (princ "  C-c l g g ...... Go to definition\n")
@@ -1100,19 +1245,22 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c l r r ...... Rename symbol\n")
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
-    (princ "🗂️  Navigation & Files:\n")
+    (princ "C/C++ Helpers (C-c c prefix):\n")
+    (princ "  C-c c m ........ Generate a Makefile with GPTel\n")
+    (princ "  C-c c c ........ Generate a CMakeLists.txt with GPTel\n\n")
+    (princ "Navigation & Files:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
     (princ "  C-c f .......... Recent files\n")
     (princ "  C-s ............ Search in buffer (swiper)\n")
     (princ "  M-x ............ Command palette (enhanced)\n\n")
-    (princ "📑 Tabs & Windows:\n")
+    (princ "Tabs & Windows:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-Arrows ....... Switch window focus\n")
     (princ "  C-| / C-- ...... Split window vertical / horizontal\n")
     (princ "  M-PgUp/PgDn .... Previous/Next tabs\n")
     (princ "  M-t / M-w ...... New / Close tab\n\n")
-    (princ "📦 Projects & Git:\n")
+    (princ "Projects & Git:\n")
     (princ "  C-x p .......... Project prefix (find file, switch project)\n")
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
@@ -1132,13 +1280,13 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v a ........ Activate venv\n")
     (princ "  C-c v d ........ Deactivate venv\n")
     (princ "  C-c v s ........ Show active venv\n\n")
-    (princ "💡 Help & Discovery:\n")
+    (princ "Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
     (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key\n")
     (princ "  C-h f .......... Describe function\n")
-    (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
-    (princ "✨ Quality of Life:\n")
+    (princ "  [Wait 0.3s] .... Which-key popup for available keys\n\n")
+    (princ "Quality of Life:\n")
     (princ "  - Modern doom-one theme with enhanced modeline\n")
     (princ "  - Git gutter shows changes in fringe\n")
     (princ "  - Line highlighting and bracket matching\n")
@@ -1214,6 +1362,9 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (princ "  S-TAB                 Previous completion\n")
     (princ "  M-d                   Show documentation (in completion)\n")
     (princ "  M-l                   Show location (in completion)\n\n")
+    (princ "C/C++ HELPERS (C-c c prefix):\n")
+    (princ "  C-c c m               Generate Makefile with GPTel\n")
+    (princ "  C-c c c               Generate CMakeLists.txt with GPTel\n\n")
     (princ "LSP COMMANDS (C-c l prefix):\n")
     (princ "  C-c l g g / C-c l .   Go to definition\n")
     (princ "  C-c l g r / C-c l ?   Find references\n")
