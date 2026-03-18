@@ -15,9 +15,11 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, Any, List
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from pathlib import Path
+from collections import defaultdict
+from urllib import error, request
 
 # Module logger - configure at module level for simple server
 logger = logging.getLogger(__name__)
@@ -31,6 +33,35 @@ MAX_MESSAGE_LENGTH = 10000  # Maximum message length
 MAX_CONTEXT_DIRS = 10  # Maximum number of context directories
 MAX_REQUEST_SIZE = 1024 * 1024  # 1MB max HTTP request body size
 MAX_FILES_TO_PROCESS = 100  # Maximum files to process in search
+LLM_REQUEST_TIMEOUT_SECONDS = 30  # Maximum LLM API request timeout
+
+
+def _read_int_env(name: str, default: int) -> int:
+    """Safely read integer values from environment variables."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        logger.warning("Invalid integer in %s=%r, using default=%d", name, raw, default)
+        return default
+
+
+def _read_float_env(name: str, default: float) -> float:
+    """Safely read float values from environment variables."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning("Invalid float in %s=%r, using default=%s", name, raw, default)
+        return default
+
+
+RATE_LIMIT_MAX_REQUESTS = _read_int_env("IDE_SERVER_RATE_LIMIT_MAX_REQUESTS", 100)
+RATE_LIMIT_WINDOW_SECONDS = _read_int_env("IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS", 60)
 
 # Global shared state with thread safety
 _chat_manager = None
@@ -108,7 +139,86 @@ class ChatManager:
         self.backend = os.environ.get("GPTEL_BACKEND", "openai")
         self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
         self.model = os.environ.get("GPTEL_MODEL", "gpt-4o-mini")
+        self.temperature = _read_float_env("GPTEL_TEMPERATURE", 0.2)
         logger.info(f"ChatManager initialized with backend: {self.backend}, model: {self.model}")
+
+    def _api_key_required(self) -> bool:
+        """Determine whether the configured backend requires an API key."""
+        if self.backend in ("vllm", "tgi"):
+            return False
+        local_markers = ("localhost", "127.0.0.1")
+        if any(marker in self.base_url for marker in local_markers):
+            return False
+        return True
+
+    def _llm_messages(self, conv_id: str, context: str = "") -> List[Dict[str, str]]:
+        """Build OpenAI-compatible chat messages from conversation history."""
+        messages: List[Dict[str, str]] = []
+        if context and context.strip():
+            messages.append({
+                "role": "system",
+                "content": f"Use this supplemental context when relevant:\n{context.strip()}"
+            })
+
+        for entry in self.get_conversation(conv_id):
+            role = entry.get("role")
+            content = entry.get("content", "")
+            if role in ("system", "user", "assistant") and isinstance(content, str):
+                messages.append({"role": role, "content": content})
+
+        return messages
+
+    def _call_openai_compatible(self, messages: List[Dict[str, str]]) -> str:
+        """Call an OpenAI-compatible chat completion endpoint."""
+        endpoint = f"{self.base_url.rstrip('/')}/chat/completions"
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+        }
+        body = json.dumps(payload).encode("utf-8")
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        req = request.Request(endpoint, data=body, headers=headers, method="POST")
+        logger.info("Sending LLM request to backend=%s endpoint=%s", self.backend, endpoint)
+        try:
+            with request.urlopen(req, timeout=LLM_REQUEST_TIMEOUT_SECONDS) as resp:
+                response_body = resp.read().decode("utf-8")
+        except error.HTTPError as e:
+            details = ""
+            try:
+                details = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                details = "<unable to read error body>"
+            logger.error("LLM HTTP error %s: %s", e.code, details)
+            raise RuntimeError(f"LLM request failed with HTTP {e.code}")
+        except error.URLError as e:
+            logger.error("LLM URL error: %s", e)
+            raise RuntimeError(f"Unable to reach LLM endpoint: {e.reason}")
+
+        try:
+            parsed = json.loads(response_body)
+        except json.JSONDecodeError as e:
+            logger.error("Invalid LLM JSON response: %s", e)
+            raise RuntimeError("LLM endpoint returned invalid JSON")
+
+        choices = parsed.get("choices", [])
+        if not choices:
+            logger.error("LLM response missing choices: %s", parsed)
+            raise RuntimeError("LLM endpoint returned no completion choices")
+
+        first = choices[0]
+        message = first.get("message", {})
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            logger.error("LLM response missing message content: %s", parsed)
+            raise RuntimeError("LLM endpoint returned an empty response")
+        return content.strip()
     
     def get_conversation(self, conv_id: str = "default") -> List[Dict[str, str]]:
         """Get messages for a conversation."""
@@ -147,7 +257,7 @@ class ChatManager:
         self.add_message(conv_id, "user", message)
         
         # Check for API key and provide clear feedback
-        if not self.api_key:
+        if not self.api_key and self._api_key_required():
             response = (
                 "⚠️  No LLM API key configured. "
                 "Set OPENAI_API_KEY environment variable to enable chat. "
@@ -155,28 +265,17 @@ class ChatManager:
             )
             logger.warning("LLM API call attempted without API key")
         else:
-            # TODO: Implement actual LLM API call here
-            # Example implementations:
-            # 
-            # For OpenAI (install: pip install openai):
-            #   import openai
-            #   client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
-            #   response = client.chat.completions.create(
-            #       model=self.model,
-            #       messages=self.get_conversation(conv_id)
-            #   )
-            #   return response.choices[0].message.content
-            #
-            # For local LLMs (vLLM, TGI compatible):
-            #   Same as OpenAI, just set OPENAI_BASE_URL to local endpoint
-            #
-            # This is a placeholder for the actual implementation
-            response = (
-                f"🤖 LLM integration placeholder (backend: {self.backend}, model: {self.model})\n"
-                f"Your message: {message}\n"
-                f"To enable full LLM functionality, implement the API call in server.py (see TODO above)"
-            )
-            logger.info(f"Placeholder LLM response generated for conversation: {conv_id}")
+            try:
+                llm_messages = self._llm_messages(conv_id, context=context)
+                response = self._call_openai_compatible(llm_messages)
+                logger.info("LLM response generated for conversation: %s", conv_id)
+            except (RuntimeError, ValueError) as e:
+                logger.error("LLM request failed for conversation %s: %s", conv_id, e)
+                response = (
+                    "LLM request failed. "
+                    "Check OPENAI_BASE_URL / OPENAI_API_KEY / GPTEL_MODEL settings and server logs.\n"
+                    f"Error: {e}"
+                )
         
         # Add assistant response
         self.add_message(conv_id, "assistant", response)
@@ -547,6 +646,9 @@ class IDERequestHandler(BaseHTTPRequestHandler):
     
     def do_GET(self):
         """Handle GET requests."""
+        if not self._check_rate_limit():
+            return
+
         if self.path == '/health':
             self._send_json_response({"status": "ok"})
         
@@ -558,6 +660,14 @@ class IDERequestHandler(BaseHTTPRequestHandler):
             conv_id = self.path.split('/')[-1]
             messages = self.chat_manager.get_conversation(conv_id)
             self._send_json_response({"messages": messages})
+
+        elif self.path == '/chat/config':
+            self._send_json_response({
+                "backend": self.chat_manager.backend,
+                "base_url": self.chat_manager.base_url,
+                "model": self.chat_manager.model,
+                "api_key_configured": bool(self.chat_manager.api_key),
+            })
         
         elif self.path == '/context/dirs':
             dirs = self.context_manager.list_context_dirs()
@@ -568,6 +678,9 @@ class IDERequestHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         """Handle POST requests with input validation."""
+        if not self._check_rate_limit():
+            return
+
         try:
             data = self._read_json_body()
         except json.JSONDecodeError as e:
@@ -669,6 +782,9 @@ class IDERequestHandler(BaseHTTPRequestHandler):
     
     def do_OPTIONS(self):
         """Handle OPTIONS for CORS."""
+        if not self._check_rate_limit():
+            return
+
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')

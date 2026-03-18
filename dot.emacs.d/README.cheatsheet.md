@@ -3,7 +3,7 @@
 Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
-- Completions appear **automatically** while typing (after 2 characters)
+- Completions appear **automatically** while typing (after 1 character)
 - `TAB` — Accept completion or cycle forward
 - `S-TAB` — Cycle backward through completions
 - `RET` (Enter) — Insert selected completion
@@ -38,6 +38,11 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 - `C-c l r r` — Rename symbol
 - `C-c l h h` — Show documentation (hover info)
 - `C-c l =` — Format buffer/region
+
+## C/C++ Helpers (`C-c c` prefix)
+- `C-c c m` — Generate `Makefile` (LLM-assisted, template fallback)
+- `C-c c k` — Generate `CMakeLists.txt` (LLM-assisted, template fallback)
+- `C-c c h` — Ask C build helper prompt (opens `*C Build Helper*`)
 
 ## Projects & Git
 - `C-x p` — Project commands (find file, switch project, etc.)

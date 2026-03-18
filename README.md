@@ -580,6 +580,11 @@ Follow the comments in each file for what to type to trigger completions.
 - **C-c ! p** - Previous error
 - **C-c ! v** - Verify Flycheck setup
 
+### C/C++ Build Helpers (C-c c prefix) - **NEW!**
+- **C-c c m** - Generate a Makefile (LLM-assisted, template fallback)
+- **C-c c k** - Generate a CMakeLists.txt (LLM-assisted, template fallback)
+- **C-c c h** - Open C build helper prompt (LLM guidance in `*C Build Helper*`)
+
 ### Navigation
 - **F8** - Toggle file explorer (Treemacs)
 - **M-←/M-→** - Switch tabs

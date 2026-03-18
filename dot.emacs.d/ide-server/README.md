@@ -7,6 +7,8 @@ A Python-based service that provides IDE features for Emacs through a simple HTT
 - **Chat Interface**: Integrate with LLMs for coding assistance
 - **Context Management**: Manage and search context directories
 - **Simple HTTP API**: Easy integration with Emacs Lisp
+- **OpenAI-Compatible Backend**: Works with OpenAI, vLLM, TGI, and compatible APIs
+- **Rate Limiting**: Per-client request limiting for safer local API usage
 
 ## Installation
 
@@ -40,6 +42,7 @@ python3 server.py --host 0.0.0.0 --port 8888
   - Body: `{"message": "your message", "conversation_id": "optional_id", "context": "optional context"}`
 - `GET /chat/conversations` - List all conversation IDs
 - `GET /chat/history/{conv_id}` - Get conversation history
+- `GET /chat/config` - Show active backend/model/base URL and API-key status
 - `POST /chat/clear` - Clear a conversation
   - Body: `{"conversation_id": "id"}`
 
@@ -58,6 +61,11 @@ python3 server.py --host 0.0.0.0 --port 8888
 - `GPTEL_BACKEND` - Backend to use (openai, vllm, tgi)
 - `OPENAI_BASE_URL` - Base URL for API (for custom endpoints)
 - `GPTEL_MODEL` - Model to use (default: gpt-4o-mini)
+- `GPTEL_TEMPERATURE` - Chat completion temperature (default: 0.2)
+- `IDE_SERVER_RATE_LIMIT_MAX_REQUESTS` - Max requests per window (default: 100)
+- `IDE_SERVER_RATE_LIMIT_WINDOW_SECONDS` - Rate-limit window seconds (default: 60)
+
+Note: `OPENAI_API_KEY` is optional for local backends (for example vLLM/TGI on localhost).
 
 ## Integration with Emacs
 

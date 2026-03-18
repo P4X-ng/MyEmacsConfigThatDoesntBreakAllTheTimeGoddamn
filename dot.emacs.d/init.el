@@ -251,6 +251,7 @@ Silently ignores package declarations to avoid console spam."
   
   ;; Add prefix descriptions for better discoverability
   (which-key-add-key-based-replacements
+    "C-c c" "C/C++ helpers"
     "C-c l" "LSP"
     "C-c p" "Project"
     "C-c v" "Python-venv"
@@ -258,7 +259,10 @@ Silently ignores package declarations to avoid console spam."
     "C-c r" "Context"
     "C-c C-g" "GPTel"
     "C-x g" "Magit"
-    "C-x p" "Project.el"))
+    "C-x p" "Project.el"
+    "C-c c m" "Generate Makefile"
+    "C-c c k" "Generate CMakeLists"
+    "C-c c h" "Build helper prompt"))
 
 ;; --- Tab-bar mode ---
 (tab-bar-mode 1)
@@ -668,6 +672,26 @@ Silently ignores package declarations to avoid console spam."
          ("\\.cpp\\'" . c++-ts-mode)
          ("\\.hpp\\'" . c++-ts-mode)))
 
+;; Consistent C/C++ style defaults for both classic and treesitter modes.
+(defun my/c-cpp-style-setup ()
+  "Set indentation and style defaults for C and C++ buffers."
+  (setq-local tab-width 4)
+  (setq-local indent-tabs-mode nil)
+  (when (derived-mode-p 'c-mode 'c++-mode)
+    (setq-local c-basic-offset 4)
+    (c-set-style "linux"))
+  (when (derived-mode-p 'c-ts-mode 'c++-ts-mode)
+    (setq-local c-ts-mode-indent-offset 4)))
+
+(add-hook 'c-mode-common-hook #'my/c-cpp-style-setup)
+(add-hook 'c-ts-mode-hook #'my/c-cpp-style-setup)
+(add-hook 'c++-ts-mode-hook #'my/c-cpp-style-setup)
+
+;; CMake file support for C/C++ project authoring.
+(use-package cmake-mode
+  :mode (("CMakeLists\\.txt\\'" . cmake-mode)
+         ("\\.cmake\\'" . cmake-mode)))
+
 ;; --- Fortran ---
 (use-package f90
   :mode (("\\.f90\\'" . f90-mode)
@@ -722,6 +746,15 @@ Silently ignores package declarations to avoid console spam."
         treemacs-eldoc-display t))
 
 ;; Custom function to open treemacs in current directory (not project mode)
+(defun my/treemacs-open-current-dir ()
+  "Open Treemacs and focus the current buffer directory."
+  (interactive)
+  (require 'treemacs)
+  (let ((current-dir (or (when buffer-file-name
+                           (file-name-directory buffer-file-name))
+                         default-directory)))
+    (treemacs-select-directory current-dir)))
+
 (defun my/treemacs-current-dir ()
   "Open treemacs showing the current directory as a simple file browser."
   (interactive)
@@ -729,11 +762,8 @@ Silently ignores package declarations to avoid console spam."
   ;; If treemacs is already visible, just toggle it off
   (if (treemacs-get-local-window)
       (delete-window (treemacs-get-local-window))
-    ;; Otherwise open treemacs - it will show the current directory by default
-    (let ((current-dir (or (when buffer-file-name
-                             (file-name-directory buffer-file-name))
-                           default-directory)))
-      (treemacs-select-directory current-dir))))
+    ;; Otherwise open treemacs on the current directory.
+    (my/treemacs-open-current-dir)))
 
 ;; --- GPTel (Chat / LLM) ---
 ;; Enhanced OpenAI integration for inline questions
@@ -818,6 +848,152 @@ Silently ignores package declarations to avoid console spam."
               (string= (or (getenv "GPTEL_BACKEND") "") "vllm")
               (string= (or (getenv "GPTEL_BACKEND") "") "tgi"))
     (message "GPTel: OpenAI API key not set. Set OPENAI_API_KEY environment variable to use AI features.")))
+
+;; --- C Build File Helpers (LLM-assisted) ---
+(defconst my/c-default-makefile-template
+  "CC := gcc
+CFLAGS := -Wall -Wextra -Wpedantic -std=c11 -O2
+SRC := $(wildcard src/*.c)
+OBJ := $(SRC:.c=.o)
+TARGET := app
+
+.PHONY: all clean run
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+\t$(CC) $(CFLAGS) -o $@ $^
+
+src/%.o: src/%.c
+\t$(CC) $(CFLAGS) -c $< -o $@
+
+run: $(TARGET)
+\t./$(TARGET)
+
+clean:
+\trm -f $(TARGET) $(OBJ)
+"
+  "Fallback Makefile template used when LLM generation is unavailable.")
+
+(defconst my/c-default-cmakelists-template
+  "cmake_minimum_required(VERSION 3.16)
+project(CProject C)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+file(GLOB SOURCES CONFIGURE_DEPENDS src/*.c)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+"
+  "Fallback CMakeLists.txt template used when LLM generation is unavailable.")
+
+(defun my/c-project-root ()
+  "Return project root for current buffer."
+  (or (locate-dominating-file default-directory ".git")
+      default-directory))
+
+(defun my/c-strip-code-fences (text)
+  "Strip a single surrounding Markdown code fence from TEXT."
+  (if (and text (string-match "\\`[ \t\n]*```[[:alnum:]]*\n" text))
+      (replace-regexp-in-string
+       "\\`[ \t\n]*```[[:alnum:]]*\n\\|\n```[ \t\n]*\\'" "" text)
+    text))
+
+(defun my/c-write-generated-file (target-path content source-label)
+  "Write CONTENT to TARGET-PATH, prompting if the file already exists."
+  (if (and (file-exists-p target-path)
+           (not (yes-or-no-p (format "%s exists. Overwrite? " target-path))))
+      (message "Skipped writing %s" target-path)
+    (with-temp-file target-path
+      (insert content))
+    (find-file target-path)
+    (message "Wrote %s (%s)" target-path source-label)))
+
+(defun my/c-handle-generated-build-file (target-path fallback-content response _info)
+  "Persist generated build file at TARGET-PATH."
+  (let* ((llm-content (and response (string-trim response)))
+         (content (if (and llm-content (not (string-empty-p llm-content)))
+                      (my/c-strip-code-fences llm-content)
+                    fallback-content))
+         (source-label (if (and llm-content (not (string-empty-p llm-content)))
+                           "LLM-generated"
+                         "template fallback")))
+    (my/c-write-generated-file target-path content source-label)))
+
+(defun my/c-generate-makefile (project-description)
+  "Generate a Makefile for the current project."
+  (interactive "sDescribe your C project for Makefile generation: ")
+  (let* ((root (my/c-project-root))
+         (target-path (expand-file-name "Makefile" root))
+         (prompt (format
+                  "Generate a production-ready Makefile for this C project.
+Return only Makefile content without markdown.
+Constraints:
+- C11
+- warnings: -Wall -Wextra -Wpedantic
+- include build targets: all, clean, run
+- source layout: src/*.c and headers in include/
+Project details: %s"
+                  project-description)))
+    (if (fboundp 'gptel-request)
+        (progn
+          (message "Generating Makefile with gptel...")
+          (gptel-request
+           prompt
+           :callback (apply-partially #'my/c-handle-generated-build-file
+                                      target-path
+                                      my/c-default-makefile-template)))
+      (my/c-write-generated-file target-path my/c-default-makefile-template "template fallback"))))
+
+(defun my/c-generate-cmakelists (project-description)
+  "Generate a CMakeLists.txt for the current project."
+  (interactive "sDescribe your C project for CMakeLists generation: ")
+  (let* ((root (my/c-project-root))
+         (target-path (expand-file-name "CMakeLists.txt" root))
+         (prompt (format
+                  "Generate a production-ready CMakeLists.txt for this C project.
+Return only CMake content without markdown.
+Constraints:
+- minimum CMake version 3.16
+- C language project
+- C standard 11 required
+- include files from src/*.c and include/ headers
+Project details: %s"
+                  project-description)))
+    (if (fboundp 'gptel-request)
+        (progn
+          (message "Generating CMakeLists.txt with gptel...")
+          (gptel-request
+           prompt
+           :callback (apply-partially #'my/c-handle-generated-build-file
+                                      target-path
+                                      my/c-default-cmakelists-template)))
+      (my/c-write-generated-file target-path my/c-default-cmakelists-template "template fallback"))))
+
+(defun my/c-handle-helper-response (prompt response _info)
+  "Display C helper RESPONSE for PROMPT in a dedicated buffer."
+  (if response
+      (with-current-buffer (get-buffer-create "*C Build Helper*")
+        (goto-char (point-max))
+        (insert (format "\nPrompt: %s\n\n%s\n" prompt response))
+        (display-buffer (current-buffer)))
+    (message "C helper request failed; check API configuration.")))
+
+(defun my/c-build-helper-prompt (prompt)
+  "Ask gptel for C build-system guidance."
+  (interactive "sC helper prompt: ")
+  (if (fboundp 'gptel-request)
+      (gptel-request
+       (format "You are helping with C build tooling and project setup. %s" prompt)
+       :callback (apply-partially #'my/c-handle-helper-response prompt))
+    (message "gptel is not available. Install/configure gptel first.")))
+
+(define-prefix-command 'my/c-helper-map)
+(global-set-key (kbd "C-c c") 'my/c-helper-map)
+(define-key my/c-helper-map (kbd "m") #'my/c-generate-makefile)
+(define-key my/c-helper-map (kbd "k") #'my/c-generate-cmakelists)
+(define-key my/c-helper-map (kbd "h") #'my/c-build-helper-prompt)
 
 ;; --- IDE Server Integration ---
 (defvar ide-server-url "http://127.0.0.1:9999"
@@ -935,8 +1111,8 @@ Returns the parsed JSON response or signals an error on failure."
     (delete-other-windows)
     
     ;; Open treemacs on the left showing current directory (not project mode)
-    (when (fboundp 'my/treemacs-current-dir)
-      (ignore-errors (my/treemacs-current-dir)))
+    (when (fboundp 'my/treemacs-open-current-dir)
+      (ignore-errors (my/treemacs-open-current-dir)))
     
     ;; Split for shell at bottom (30% height)
     (let* ((main-window (selected-window))
@@ -1076,7 +1252,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "🚀 Enhanced Emacs IDE Keybindings\n")
     (princ "=====================================\n\n")
     (princ "💡 Autocompletion (Corfu primary, Company fallback):\n")
-    (princ "  Auto ........... Completions appear while typing (2+ chars, Corfu)\n")
+    (princ "  Auto ........... Completions appear while typing (1+ chars, Corfu)\n")
     (princ "  C-TAB .......... Trigger Corfu completion manually (Ctrl+Tab)\n")
     (princ "  M-/ ............ Trigger Company completion (alternative) ⭐ NEW!\n")
     (princ "  TAB ............ Accept/cycle forward through completions\n")
@@ -1100,6 +1276,10 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c l r r ...... Rename symbol\n")
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
+    (princ "C/C++ Helpers (C-c c prefix):\n")
+    (princ "  C-c c m ........ Generate Makefile (LLM-assisted)\n")
+    (princ "  C-c c k ........ Generate CMakeLists.txt (LLM-assisted)\n")
+    (princ "  C-c c h ........ Ask C build helper prompt\n\n")
     (princ "🗂️  Navigation & Files:\n")
     (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
