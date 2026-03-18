@@ -399,7 +399,10 @@ Silently ignores package declarations to avoid console spam."
   (setq company-box-doc-delay 0.5))
 
 ;; Corfu popupinfo: Show documentation popup next to completions
+;; corfu-popupinfo is bundled inside the corfu repo under extensions/
 (use-package corfu-popupinfo
+  :straight (:host github :repo "minad/corfu"
+             :files ("extensions/corfu-popupinfo.el"))
   :after corfu
   :hook (corfu-mode . corfu-popupinfo-mode)
   :custom
