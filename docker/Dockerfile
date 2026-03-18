@@ -36,7 +36,7 @@ RUN /opt/jedi/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
     python-lsp-black==2.0.0 \
     pylsp-rope==0.1.16 \
     rope==1.13.0 \
-    autopep8==2.3.1 \
+    autopep8==2.0.4 \
     flake8==7.1.1 \
     mypy==1.13.0 \
     black==24.10.0
