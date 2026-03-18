@@ -256,6 +256,7 @@ Silently ignores package declarations to avoid console spam."
     "C-c v" "Python-venv"
     "C-c i" "IDE-server"
     "C-c r" "Context"
+    "C-c h" "Help"
     "C-c c" "C/C++"
     "C-c C-g" "GPTel"
     "C-x g" "Magit"
@@ -1282,7 +1283,7 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v s ........ Show active venv\n\n")
     (princ "Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
+    (princ "  C-c h h ........ Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key\n")
     (princ "  C-h f .......... Describe function\n")
     (princ "  [Wait 0.3s] .... Which-key popup for available keys\n\n")
@@ -1301,10 +1302,10 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n\n")
+    (princ "  C-c h h ........ Show this cheat sheet (alternative)\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
-(global-set-key (kbd "M-h M-h") #'my/show-cheatsheet)
+(global-set-key (kbd "C-c h h") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
 ;; Add hydra for common command discovery
@@ -1398,6 +1399,7 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (princ "HELP:\n")
     (princ "  C-k                   Full cheat sheet\n")
     (princ "  F1 / C-c m            Interactive menu (Hydra)\n")
+    (princ "  C-c h h               Cheat sheet (alternative)\n")
     (princ "  C-h k                 Describe key\n")
     (princ "  C-h f                 Describe function\n\n")
     (princ "See C-k for the complete cheat sheet.\n")))

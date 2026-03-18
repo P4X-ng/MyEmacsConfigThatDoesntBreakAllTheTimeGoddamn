@@ -1,6 +1,6 @@
 # Enhanced Emacs IDE Cheat Sheet
 
-Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
+Quick reference for the key bindings defined in `init.el`. Press `C-k` or `C-c h h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
 - Completions appear **automatically** while typing (after 1 character)
@@ -90,7 +90,7 @@ The Python IDE server (`ide-server/server.py`) runs automatically on startup and
 Keep `init.el` handy for more advanced customization details.
 
 ## 💡 Help & Discovery
-- `C-k` or `M-h M-h` — Show this cheat sheet
+- `C-k` or `C-c h h` — Show this cheat sheet
 - `C-h k` — Describe key
 - `C-h f` — Describe function
 - **Wait 0.3s** — Which-key popup shows available keys

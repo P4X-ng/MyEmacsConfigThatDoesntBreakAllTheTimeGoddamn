@@ -233,7 +233,7 @@ After installation, you can start using Emacs with this configuration immediatel
 - `C-c g s` - Send region/buffer to ChatGPT
 
 **Getting Help**:
-- `C-k` or `M-h M-h` - Show the keybinding cheat sheet
+- `C-k` or `C-c h h` - Show the keybinding cheat sheet
 - `C-h k` - Describe what a key does
 - `C-h f` - Get help on any function
 
@@ -307,7 +307,7 @@ While this configuration doesn't use heavy project management, you can still wor
 ### Help
 | Keybinding | Action |
 |------------|--------|
-| `C-k` or `M-h M-h` | Show cheat sheet |
+| `C-k` or `C-c h h` | Show cheat sheet |
 | `C-h k` | Describe key |
 | `C-h f` | Describe function |
 
@@ -601,7 +601,7 @@ Follow the comments in each file for what to type to trigger completions.
 - **C-x g** - Open Magit status
 
 ### Help
-- **C-k** or **M-h M-h** - Show keybinding cheat sheet
+- **C-k** or **C-c h h** - Show keybinding cheat sheet
 
 ## Configuration Structure
 
