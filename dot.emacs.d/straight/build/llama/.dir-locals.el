@@ -1,1 +1,0 @@
-/home/punk/.emacs.d/straight/repos/llama/.dir-locals.el
