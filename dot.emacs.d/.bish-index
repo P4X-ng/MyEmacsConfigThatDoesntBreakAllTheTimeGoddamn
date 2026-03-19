@@ -3,3 +3,5 @@
 ./ide-server/README.md
 ./ide-server/server.py
 ./ide-server/start-server.sh
+./ide-server/AGENTS.md
+./AGENTS.md

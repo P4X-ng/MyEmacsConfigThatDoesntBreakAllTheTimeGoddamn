@@ -1,0 +1,3 @@
+- The tree/file nav does not appear by default.
+- suggestions do not appear
+- nothing here really says "IDE" to me to be honest
