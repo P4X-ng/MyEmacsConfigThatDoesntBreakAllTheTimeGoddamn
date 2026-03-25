@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: jedi-language-server:latest
-    container_name: jedi-lsp
+    container_name: jedi
     volumes:
       # Export the jedi venv to host for use outside the container
       - jedi-venv:/jedi-venv:ro
