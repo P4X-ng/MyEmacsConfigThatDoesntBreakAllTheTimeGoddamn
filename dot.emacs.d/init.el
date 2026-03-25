@@ -741,28 +741,32 @@ Silently ignores package declarations to avoid console spam."
 ;; --- GPTel (Chat / LLM) ---
 ;; Enhanced OpenAI integration for inline questions
 (use-package gptel
-  :init
-  ;; Set default model
-  (setq gptel-default-model (or (getenv "GPTEL_MODEL") "gpt-4o-mini"))
-  
-  ;; Configure backend based on environment
-  (cond
-   ;; vLLM backend
-   ((string= (or (getenv "GPTEL_BACKEND") "") "vllm")
-    (setq gptel-openai-base-url (or (getenv "OPENAI_BASE_URL") "http://localhost:8000/v1")
-          gptel-api-key (or (getenv "OPENAI_API_KEY") "local-llm-token")))
-   ;; TGI backend
-   ((string= (or (getenv "GPTEL_BACKEND") "") "tgi")
-    (setq gptel-openai-base-url (or (getenv "OPENAI_BASE_URL") "http://localhost:8080/v1")
-          gptel-api-key (or (getenv "OPENAI_API_KEY") "local-llm-token")))
-   ;; Default: OpenAI (only set API key if available)
-   (t
-    (when (getenv "OPENAI_API_KEY")
-      (setq gptel-api-key (getenv "OPENAI_API_KEY")))
-    (when (getenv "OPENAI_BASE_URL")
-      (setq gptel-openai-base-url (getenv "OPENAI_BASE_URL")))))
-  
   :config
+  ;; Configure model and backend based on environment
+  (setq gptel-model (or (getenv "GPTEL_MODEL") "gpt-5.4"))
+  (let ((backend-type (or (getenv "GPTEL_BACKEND") ""))
+        (base-url (or (getenv "OPENAI_BASE_URL") ""))
+        (api-key (or (getenv "OPENAI_API_KEY") "")))
+    (cond
+     ;; vLLM backend
+     ((string= backend-type "vllm")
+      (gptel-make-openai "vllm"
+        :host (replace-regexp-in-string ".*://" "" (if (string-empty-p base-url) "http://localhost:8000/v1" base-url))
+        :key (if (string-empty-p api-key) "local-llm-token" api-key)
+        :models (list gptel-model))
+      (setq gptel-backend (gptel-get-backend "vllm")))
+     ;; TGI backend
+     ((string= backend-type "tgi")
+      (gptel-make-openai "tgi"
+        :host (replace-regexp-in-string ".*://" "" (if (string-empty-p base-url) "http://localhost:8080/v1" base-url))
+        :key (if (string-empty-p api-key) "local-llm-token" api-key)
+        :models (list gptel-model))
+      (setq gptel-backend (gptel-get-backend "tgi")))
+     ;; Default: OpenAI (only set API key if available)
+     (t
+      (unless (string-empty-p api-key)
+        (setq gptel-api-key api-key)))))
+
   ;; Keybindings for GPTel
   (global-set-key (kbd "C-c C-g") #'gptel)
   (global-set-key (kbd "C-c g s") #'gptel-send)

@@ -107,7 +107,7 @@ class ChatManager:
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
         self.backend = os.environ.get("GPTEL_BACKEND", "openai")
         self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        self.model = os.environ.get("GPTEL_MODEL", "gpt-4o-mini")
+        self.model = os.environ.get("GPTEL_MODEL", "gpt-5.4")
         logger.info(f"ChatManager initialized with backend: {self.backend}, model: {self.model}")
     
     def get_conversation(self, conv_id: str = "default") -> List[Dict[str, str]]:
