@@ -256,7 +256,9 @@ Silently ignores package declarations to avoid console spam."
     "C-c v" "Python-venv"
     "C-c i" "IDE-server"
     "C-c r" "Context"
-    "C-c C-g" "GPTel"
+    "C-c C-g" "GPTel chat"
+    "C-c G" "GPTel"
+    "C-c ?" "Cheat sheet"
     "C-x g" "Magit"
     "C-x p" "Project.el"))
 
@@ -769,7 +771,11 @@ Silently ignores package declarations to avoid console spam."
 
   ;; Keybindings for GPTel
   (global-set-key (kbd "C-c C-g") #'gptel)
-  (global-set-key (kbd "C-c g s") #'gptel-send)
+  (define-prefix-command 'my/gptel-command-map)
+  (global-set-key (kbd "C-c G") 'my/gptel-command-map)
+  (define-key my/gptel-command-map (kbd "c") #'gptel)
+  (define-key my/gptel-command-map (kbd "g") #'gptel)
+  (define-key my/gptel-command-map (kbd "s") #'gptel-send)
   
   ;; Custom function to ask a quick question inline
   (defun gptel-ask-inline ()
@@ -788,8 +794,8 @@ Silently ignores package declarations to avoid console spam."
                  (message "Answer received from ChatGPT"))
              (message "Failed to get response from ChatGPT")))))))
   
-  ;; Bind inline question to C-c g q
-  (global-set-key (kbd "C-c g q") #'gptel-ask-inline)
+  ;; Bind inline question inside a dedicated GPTel prefix map.
+  (define-key my/gptel-command-map (kbd "q") #'gptel-ask-inline)
   
   ;; Custom function to explain code
   (defun gptel-explain-region ()
@@ -817,8 +823,8 @@ Silently ignores package declarations to avoid console spam."
                (message "Failed to get explanation from ChatGPT")))))
       (message "No region selected")))
   
-  ;; Bind code explanation to C-c g e
-  (global-set-key (kbd "C-c g e") #'gptel-explain-region)
+  ;; Bind code explanation inside a dedicated GPTel prefix map.
+  (define-key my/gptel-command-map (kbd "e") #'gptel-explain-region)
   
   ;; Display helpful message if API key is not set
   (unless (or (getenv "OPENAI_API_KEY") 
@@ -1124,6 +1130,10 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-x g .......... Magit status\n\n")
     (princ "LLM / ChatGPT:\n")
     (princ "  C-c C-g ........ Open GPTel chat\n")
+    (princ "  C-c G c ........ Open GPTel from the AI prefix\n")
+    (princ "  C-c G q ........ Ask quick question inline\n")
+    (princ "  C-c G e ........ Explain selected code\n")
+    (princ "  C-c G s ........ Send prompt/region with GPTel\n")
     (princ "  C-c RET ........ Send prompt (inside chat buffer)\n\n")
     (princ "IDE Server (Python):\n")
     (princ "  C-c i c ........ Send chat message to IDE server\n")
@@ -1140,8 +1150,8 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v d ........ Deactivate venv\n")
     (princ "  C-c v s ........ Show active venv\n\n")
     (princ "💡 Help & Discovery:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
+    (princ "  F2 ............. Show this cheat sheet\n")
+    (princ "  C-c ? .......... Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key\n")
     (princ "  C-h f .......... Describe function\n")
     (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
@@ -1159,11 +1169,11 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  TypeScript and JavaScript auto-detected\n")
     (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n\n")
+    (princ "  F2 ............. Show this cheat sheet\n")
+    (princ "  C-c ? .......... Show this cheat sheet (alternative)\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
-(global-set-key (kbd "C-k") #'my/show-cheatsheet)
-(global-set-key (kbd "M-h M-h") #'my/show-cheatsheet)
+(global-set-key (kbd "<f2>") #'my/show-cheatsheet)
+(global-set-key (kbd "C-c ?") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
 ;; Add hydra for common command discovery
@@ -1252,11 +1262,11 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (princ "GIT:\n")
     (princ "  C-x g                 Magit status\n\n")
     (princ "HELP:\n")
-    (princ "  C-k                   Full cheat sheet\n")
+    (princ "  F2 / C-c ?            Full cheat sheet\n")
     (princ "  F1 / C-c m            Interactive menu (Hydra)\n")
     (princ "  C-h k                 Describe key\n")
     (princ "  C-h f                 Describe function\n\n")
-    (princ "See C-k for the complete cheat sheet.\n")))
+    (princ "See F2 or C-c ? for the complete cheat sheet.\n")))
 
 (global-set-key (kbd "C-h K") 'my/describe-personal-keybindings)
 
@@ -1335,7 +1345,7 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (message "✅ Enhanced Emacs IDE Ready!")
     (message "========================================")
     (message "Press F1 or C-c m for interactive command menu")
-    (message "Press C-k for full keybindings cheat sheet")
+    (message "Press F2 or C-c ? for full keybindings cheat sheet")
     (message "Press C-h K for personal keybindings list")
     (message "")
     (when lsp-servers
@@ -1359,4 +1369,4 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
 
 (add-hook 'emacs-startup-hook #'my/show-startup-info)
 
-(message "✅ Enhanced Emacs IDE configuration loaded! Press C-k for keybindings.")
+(message "✅ Enhanced Emacs IDE configuration loaded! Press F2 or C-c ? for keybindings.")

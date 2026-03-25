@@ -55,7 +55,7 @@ A modern, user-friendly Emacs configuration with proper terminal support and bea
 4. **First launch**: 
    - Start Emacs - packages will auto-install
    - If vterm compilation fails, fallback terminal will work
-   - Press `C-k` for the keybindings cheat sheet
+   - Press `F2` or `C-c ?` for the keybindings cheat sheet
 
 ## 🎯 Key Features
 
@@ -72,6 +72,7 @@ A modern, user-friendly Emacs configuration with proper terminal support and bea
 
 ### AI/LLM Integration
 - **GPTel**: ChatGPT integration with local LLM support
+- **Dedicated AI prefix**: `C-c G` groups GPTel actions without conflicting with search keys
 - **Context search**: Search and insert from context directories
 - **Smart prompting**: Easy access to AI assistance
 
@@ -83,7 +84,7 @@ A modern, user-friendly Emacs configuration with proper terminal support and bea
 
 ## 📋 Quick Reference
 
-Press `C-k` anytime to see the full keybindings cheat sheet!
+Press `F2` or `C-c ?` anytime to see the full keybindings cheat sheet.
 
 ### Most Important Bindings
 - `C-c t` - Open terminal (the good one!)
@@ -93,6 +94,8 @@ Press `C-k` anytime to see the full keybindings cheat sheet!
 - `C-s` - Search in buffer (swiper)
 - `F8` - Toggle file tree
 - `C-x g` - Git status
+- `C-c C-g` - Open GPTel chat
+- `C-c G q` - Ask an inline GPTel question
 
 ## 🔧 Troubleshooting
 
