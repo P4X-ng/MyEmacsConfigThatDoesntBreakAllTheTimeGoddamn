@@ -57,7 +57,7 @@ python3 server.py --host 0.0.0.0 --port 8888
 - `OPENAI_API_KEY` - Your OpenAI API key
 - `GPTEL_BACKEND` - Backend to use (openai, vllm, tgi)
 - `OPENAI_BASE_URL` - Base URL for API (for custom endpoints)
-- `GPTEL_MODEL` - Model to use (default: gpt-4o-mini)
+- `GPTEL_MODEL` - Model to use (default: gpt-5.4)
 
 ## Integration with Emacs
 

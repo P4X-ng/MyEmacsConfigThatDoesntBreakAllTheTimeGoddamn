@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
             echo "  OPENAI_API_KEY    OpenAI API key for LLM chat"
             echo "  GPTEL_BACKEND     Backend to use (openai, vllm, tgi)"
             echo "  OPENAI_BASE_URL   Base URL for API"
-            echo "  GPTEL_MODEL       Model to use (default: gpt-4o-mini)"
+            echo "  GPTEL_MODEL       Model to use (default: gpt-5.4)"
             exit 0
             ;;
         *)

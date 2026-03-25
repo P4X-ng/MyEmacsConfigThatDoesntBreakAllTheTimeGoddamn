@@ -743,7 +743,7 @@ Silently ignores package declarations to avoid console spam."
 (use-package gptel
   :config
   ;; Configure model and backend based on environment
-  (setq gptel-model (or (getenv "GPTEL_MODEL") "gpt-4o-mini"))
+  (setq gptel-model (or (getenv "GPTEL_MODEL") "gpt-5.4"))
   (let ((backend-type (or (getenv "GPTEL_BACKEND") ""))
         (base-url (or (getenv "OPENAI_BASE_URL") ""))
         (api-key (or (getenv "OPENAI_API_KEY") "")))
