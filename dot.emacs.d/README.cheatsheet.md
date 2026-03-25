@@ -1,6 +1,6 @@
 # 🚀 Enhanced Emacs IDE Cheat Sheet
 
-Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M-h` inside Emacs at any time to show this list from within the editor.
+Quick reference for the key bindings defined in `init.el`. Press `C-c h h` inside Emacs at any time to show this list from within the editor.
 
 ## Autocompletion
 - Completions appear **automatically** while typing (after 2 characters)
@@ -45,9 +45,10 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 
 ## 🤖 GPTel / LLM Chat
 - `C-c C-g` — Open GPTel chat window
-- `C-c g q` — Ask quick question inline (answer inserted at cursor)
-- `C-c g e` — Explain selected code (opens in new buffer)
-- `C-c g s` — Send region/buffer to ChatGPT
+- `C-c a q` — Ask quick question inline (answer inserted at cursor)
+- `C-c a e` — Explain selected code (opens in new buffer)
+- `C-c a s` — Send region/buffer to ChatGPT
+- `C-c a c` — Open GPTel from the AI prefix
 - `C-c RET` — Send prompt (when inside GPTel buffer)
 
 ## IDE Server (Python-based)
@@ -85,7 +86,8 @@ The Python IDE server (`ide-server/server.py`) runs automatically on startup and
 Keep `init.el` handy for more advanced customization details.
 
 ## 💡 Help & Discovery
-- `C-k` or `M-h M-h` — Show this cheat sheet
+- `C-c h h` — Show this cheat sheet
+- `C-c h k` — Describe key
 - `C-h k` — Describe key
 - `C-h f` — Describe function
 - **Wait 0.5s** — Which-key popup shows available keys

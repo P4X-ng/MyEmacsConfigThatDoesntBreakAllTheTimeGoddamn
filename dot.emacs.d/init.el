@@ -255,8 +255,10 @@ Silently ignores package declarations to avoid console spam."
     "C-c p" "Project"
     "C-c v" "Python-venv"
     "C-c i" "IDE-server"
+    "C-c h" "Help"
     "C-c r" "Context"
-    "C-c C-g" "GPTel"
+    "C-c a" "AI"
+    "C-c C-g" "AI-chat"
     "C-x g" "Magit"
     "C-x p" "Project.el"))
 
@@ -740,6 +742,9 @@ Silently ignores package declarations to avoid console spam."
 
 ;; --- GPTel (Chat / LLM) ---
 ;; Enhanced OpenAI integration for inline questions
+(define-prefix-command 'my/ai-command-map)
+(global-set-key (kbd "C-c a") 'my/ai-command-map)
+
 (use-package gptel
   :config
   ;; Configure model and backend based on environment
@@ -769,7 +774,8 @@ Silently ignores package declarations to avoid console spam."
 
   ;; Keybindings for GPTel
   (global-set-key (kbd "C-c C-g") #'gptel)
-  (global-set-key (kbd "C-c g s") #'gptel-send)
+  (define-key my/ai-command-map (kbd "c") #'gptel)
+  (define-key my/ai-command-map (kbd "s") #'gptel-send)
   
   ;; Custom function to ask a quick question inline
   (defun gptel-ask-inline ()
@@ -788,8 +794,8 @@ Silently ignores package declarations to avoid console spam."
                  (message "Answer received from ChatGPT"))
              (message "Failed to get response from ChatGPT")))))))
   
-  ;; Bind inline question to C-c g q
-  (global-set-key (kbd "C-c g q") #'gptel-ask-inline)
+  ;; Bind inline question to C-c a q
+  (define-key my/ai-command-map (kbd "q") #'gptel-ask-inline)
   
   ;; Custom function to explain code
   (defun gptel-explain-region ()
@@ -817,8 +823,8 @@ Silently ignores package declarations to avoid console spam."
                (message "Failed to get explanation from ChatGPT")))))
       (message "No region selected")))
   
-  ;; Bind code explanation to C-c g e
-  (global-set-key (kbd "C-c g e") #'gptel-explain-region)
+  ;; Bind code explanation to C-c a e
+  (define-key my/ai-command-map (kbd "e") #'gptel-explain-region)
   
   ;; Display helpful message if API key is not set
   (unless (or (getenv "OPENAI_API_KEY") 
@@ -1139,11 +1145,11 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c v a ........ Activate venv\n")
     (princ "  C-c v d ........ Deactivate venv\n")
     (princ "  C-c v s ........ Show active venv\n\n")
-    (princ "💡 Help & Discovery:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
-    (princ "  C-h k .......... Describe key\n")
+    (princ "Help & Discovery:\n")
+    (princ "  C-c h h ........ Show this cheat sheet\n")
+    (princ "  C-c h k ........ Describe key\n")
     (princ "  C-h f .......... Describe function\n")
+    (princ "  C-h k .......... Describe key\n")
     (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
     (princ "✨ Quality of Life:\n")
     (princ "  - Modern doom-one theme with enhanced modeline\n")
@@ -1159,11 +1165,14 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  TypeScript and JavaScript auto-detected\n")
     (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
-    (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n\n")
+    (princ "  C-c h h ........ Show this cheat sheet\n")
+    (princ "  C-c h k ........ Describe key\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
-(global-set-key (kbd "C-k") #'my/show-cheatsheet)
-(global-set-key (kbd "M-h M-h") #'my/show-cheatsheet)
+
+(define-prefix-command 'my/help-command-map)
+(global-set-key (kbd "C-c h") 'my/help-command-map)
+(define-key my/help-command-map (kbd "h") #'my/show-cheatsheet)
+(define-key my/help-command-map (kbd "k") #'describe-key)
 
 ;; --- Additional Quality of Life Improvements ---
 ;; Add hydra for common command discovery
@@ -1252,11 +1261,11 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (princ "GIT:\n")
     (princ "  C-x g                 Magit status\n\n")
     (princ "HELP:\n")
-    (princ "  C-k                   Full cheat sheet\n")
+    (princ "  C-c h h               Full cheat sheet\n")
     (princ "  F1 / C-c m            Interactive menu (Hydra)\n")
     (princ "  C-h k                 Describe key\n")
     (princ "  C-h f                 Describe function\n\n")
-    (princ "See C-k for the complete cheat sheet.\n")))
+    (princ "See C-c h h for the complete cheat sheet.\n")))
 
 (global-set-key (kbd "C-h K") 'my/describe-personal-keybindings)
 
@@ -1335,7 +1344,7 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
     (message "✅ Enhanced Emacs IDE Ready!")
     (message "========================================")
     (message "Press F1 or C-c m for interactive command menu")
-    (message "Press C-k for full keybindings cheat sheet")
+    (message "Press C-c h h for full keybindings cheat sheet")
     (message "Press C-h K for personal keybindings list")
     (message "")
     (when lsp-servers
@@ -1359,4 +1368,4 @@ _T_: Terminal       _/_: Comment        _r_: References     ^ ^             ^ ^
 
 (add-hook 'emacs-startup-hook #'my/show-startup-info)
 
-(message "✅ Enhanced Emacs IDE configuration loaded! Press C-k for keybindings.")
+(message "✅ Enhanced Emacs IDE configuration loaded! Press C-c h h for keybindings.")

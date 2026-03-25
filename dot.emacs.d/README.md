@@ -55,7 +55,7 @@ A modern, user-friendly Emacs configuration with proper terminal support and bea
 4. **First launch**: 
    - Start Emacs - packages will auto-install
    - If vterm compilation fails, fallback terminal will work
-   - Press `C-k` for the keybindings cheat sheet
+   - Press `C-c h h` for the keybindings cheat sheet
 
 ## 🎯 Key Features
 
@@ -83,7 +83,7 @@ A modern, user-friendly Emacs configuration with proper terminal support and bea
 
 ## 📋 Quick Reference
 
-Press `C-k` anytime to see the full keybindings cheat sheet!
+Press `C-c h h` anytime to see the full keybindings cheat sheet!
 
 ### Most Important Bindings
 - `C-c t` - Open terminal (the good one!)

@@ -79,9 +79,9 @@ This Emacs configuration provides a VSCode-like experience with all the power of
 ### AI/LLM Integration
 - **GPTel**: Enhanced ChatGPT integration for inline AI assistance
   - `C-c C-g`: Open GPTel chat window
-  - `C-c g q`: Ask a quick question inline (answer inserted at cursor)
-  - `C-c g e`: Explain selected code (opens explanation in new buffer)
-  - `C-c g s`: Send current region or buffer to ChatGPT
+  - `C-c a q`: Ask a quick question inline (answer inserted at cursor)
+  - `C-c a e`: Explain selected code (opens explanation in new buffer)
+  - `C-c a s`: Send current region or buffer to ChatGPT
   - Supports OpenAI API, local vLLM, and TGI backends
   - Environment-based configuration (set `OPENAI_API_KEY` in `.env`)
 
@@ -182,9 +182,9 @@ To enable inline AI questions and ChatGPT integration:
 
 5. Start Emacs and use the AI features:
    - `C-c C-g` - Open GPTel chat window
-   - `C-c g q` - Ask a quick question inline (answer inserted at cursor)
-   - `C-c g e` - Explain selected code
-   - `C-c g s` - Send region/buffer to ChatGPT
+   - `C-c a q` - Ask a quick question inline (answer inserted at cursor)
+   - `C-c a e` - Explain selected code
+   - `C-c a s` - Send region/buffer to ChatGPT
 
 ## 📖 Usage
 
@@ -223,12 +223,12 @@ After installation, you can start using Emacs with this configuration immediatel
 
 **AI Assistant**:
 - `C-c C-g` - Open GPTel chat window
-- `C-c g q` - Ask a quick inline question (answer inserted at cursor)
-- `C-c g e` - Explain selected code
-- `C-c g s` - Send region/buffer to ChatGPT
+- `C-c a q` - Ask a quick inline question (answer inserted at cursor)
+- `C-c a e` - Explain selected code
+- `C-c a s` - Send region/buffer to ChatGPT
 
 **Getting Help**:
-- `C-k` or `M-h M-h` - Show the keybinding cheat sheet
+- `C-c h h` - Show the keybinding cheat sheet
 - `C-h k` - Describe what a key does
 - `C-h f` - Get help on any function
 
@@ -290,9 +290,9 @@ While this configuration doesn't use heavy project management, you can still wor
 | Keybinding | Action |
 |------------|--------|
 | `C-c C-g` | Open GPTel chat |
-| `C-c g q` | Ask inline question |
-| `C-c g e` | Explain selected code |
-| `C-c g s` | Send to ChatGPT |
+| `C-c a q` | Ask inline question |
+| `C-c a e` | Explain selected code |
+| `C-c a s` | Send to ChatGPT |
 
 ### LSP
 | Keybinding | Action |
@@ -302,7 +302,7 @@ While this configuration doesn't use heavy project management, you can still wor
 ### Help
 | Keybinding | Action |
 |------------|--------|
-| `C-k` or `M-h M-h` | Show cheat sheet |
+| `C-c h h` | Show cheat sheet |
 | `C-h k` | Describe key |
 | `C-h f` | Describe function |
 
@@ -448,7 +448,7 @@ See [FIXES.md](FIXES.md) for detailed information about what was fixed.
 - Tab-bar mode for multiple tabs (M-t for new, M-w to close)
 - Clean, minimal UI with no distractions
 - Customizable keybindings
-- Built-in cheat sheet (press C-k)
+- Built-in cheat sheet (press C-c h h)
 
 ## Quick Start
 
@@ -550,7 +550,7 @@ Follow the comments in each file for what to type to trigger completions.
 
 ### Quick Access to Help
 - **F1 or C-c m** - Interactive command menu (Hydra) - **NEW!**
-- **C-k** - Full keybindings cheat sheet
+- **C-c h h** - Full keybindings cheat sheet
 - **C-h K** - Personal keybindings reference - **NEW!**
 
 ### Autocompletion
@@ -596,7 +596,7 @@ Follow the comments in each file for what to type to trigger completions.
 - **C-x g** - Open Magit status
 
 ### Help
-- **C-k** or **M-h M-h** - Show keybinding cheat sheet
+- **C-c h h** - Show keybinding cheat sheet
 
 ## Configuration Structure
 

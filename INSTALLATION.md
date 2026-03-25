@@ -114,9 +114,9 @@ source ~/.bashrc
 
 Once configured, you can use:
 - `C-c C-g` - Open GPTel chat window
-- `C-c g q` - Ask a quick question (answer inserted at cursor)
-- `C-c g e` - Explain selected code
-- `C-c g s` - Send region/buffer to ChatGPT
+- `C-c a q` - Ask a quick question (answer inserted at cursor)
+- `C-c a e` - Explain selected code
+- `C-c a s` - Send region/buffer to ChatGPT
 
 ## 🧪 Testing the Installation
 
@@ -136,7 +136,7 @@ emacs
 ### 2. Test Basic Features
 
 - Press `F8` to toggle Treemacs file explorer
-- Press `C-k` to view the keybinding cheat sheet
+- Press `C-c h h` to view the keybinding cheat sheet
 - Open a file: `C-x C-f`
 
 ### 3. Test Language Servers
@@ -157,7 +157,7 @@ C-x C-f ~/test.c
 
 - Press `C-c C-g` to open GPTel
 - Type a question and send it
-- Or press `C-c g q` to ask an inline question
+- Or press `C-c a q` to ask an inline question
 
 ## 🔄 Updating the Configuration
 
@@ -348,7 +348,7 @@ nano ~/.emacs.d/.env  # Add your API key
 After successful installation:
 
 1. **Start Emacs**: `emacs`
-2. **Read the cheat sheet**: Press `C-k` in Emacs
+2. **Read the cheat sheet**: Press `C-c h h` in Emacs
 3. **Explore features**: Open some code files and try:
    - Auto-completion
    - Code navigation (`C-c l g g` to go to definition)
