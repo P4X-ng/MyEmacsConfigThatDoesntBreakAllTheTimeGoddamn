@@ -18,12 +18,16 @@ Quick reference for the key bindings defined in `init.el`. Press `C-k` or `M-h M
 - `C-c M-t` — Open terminal in project root
 
 ## 🗂️ Navigation & Files  
-- `F8` — Toggle Treemacs sidebar (opens current directory, closes if already open)
+- `F8` — Toggle Treemacs sidebar (**always opens the current directory** — no stale project state)
 - `C-x C-f` — Find file (enhanced with counsel)
 - `C-c f` — Recent files
 - `C-s` — Search in buffer (swiper)
 - `M-x` — Command palette (enhanced)
 - `C-x C-b` — Buffer list (organized with ibuffer)
+
+> **Treemacs FAQ**: Pressing `F8` now clears any previously remembered projects and opens a fresh
+> view of whatever directory you're working in.  No more "wrong project" surprise.
+> The treemacs workspace cache is also wiped on every Emacs startup so nothing carries over.
 
 ## 📑 Tabs & Windows
 - `M-←/→/↑/↓` — Move between windows
@@ -86,9 +90,19 @@ Keep `init.el` handy for more advanced customization details.
 
 ## 💡 Help & Discovery
 - `C-k` or `M-h M-h` — Show this cheat sheet
-- `C-h k` — Describe key
-- `C-h f` — Describe function
-- **Wait 0.5s** — Which-key popup shows available keys
+- `C-h k` — Describe key (what does this key combo do?)
+- `C-h f` — Describe function (what does `foo-bar` do?)
+- `C-h a` — **Apropos: search ALL commands by keyword** (powered by `counsel-apropos` — fuzzy!)
+- `M-x <term>` — Also fuzzy-searches all commands via `counsel-M-x`
+- **Wait 0.3s** — Which-key popup shows available keys
+
+> **Searching tip**: Don't know the prefix?  Use `C-h a <concept>` to search everything at once.
+> e.g. `C-h a project RET` lists every project-related command across all packages.
+> `M-x` also does fuzzy matching, so you can type any part of a command name.
+
+> **Help buffer scrolling**: Help windows (including `C-h C-h`) now **automatically gain focus**
+> so you can scroll them immediately with `PgDn` / `C-v` / arrow keys.
+> Press `q` to dismiss, or `C-x o` to jump back to your editing window.
 
 ## ✨ New Features
 - **Modern doom-one theme** with enhanced modeline

@@ -62,6 +62,9 @@ Silently ignores package declarations to avoid console spam."
 (show-paren-mode 1)
 (setq show-paren-delay 0)
 (setq ring-bell-function 'ignore)
+;; Make help windows automatically gain focus so you can scroll them
+;; (fixes C-h C-h and other help buffers being stuck in background)
+(setq help-window-select t)
 
 ;; --- Modern Theme ---
 (use-package doom-themes
@@ -304,7 +307,9 @@ Silently ignores package declarations to avoid console spam."
          ("C-x C-f" . counsel-find-file)
          ("C-c f" . counsel-recentf)
          ("C-c g" . counsel-git-grep)
-         ("C-s" . swiper)))
+         ("C-s" . swiper)
+         ;; Fuzzy search through ALL emacs commands by keyword (not just prefix)
+         ("C-h a" . counsel-apropos)))
 
 (use-package swiper
   :after ivy)
@@ -724,19 +729,35 @@ Silently ignores package declarations to avoid console spam."
         treemacs-show-cursor nil
         treemacs-eldoc-display t))
 
-;; Custom function to open treemacs in current directory (not project mode)
+;; Custom function to open treemacs in current directory (no project baggage)
 (defun my/treemacs-current-dir ()
-  "Open treemacs showing the current directory as a simple file browser."
+  "Open treemacs showing ONLY the current directory.
+Clears all stale projects from the workspace so you always see exactly
+where you are, not some unrelated directory from a previous session."
   (interactive)
   (require 'treemacs)
-  ;; If treemacs is already visible, just toggle it off
+  ;; If treemacs is already visible, toggle it off
   (if (treemacs-get-local-window)
       (delete-window (treemacs-get-local-window))
-    ;; Otherwise open treemacs - it will show the current directory by default
-    (let ((current-dir (or (when buffer-file-name
-                             (file-name-directory buffer-file-name))
-                           default-directory)))
-      (treemacs-select-directory current-dir))))
+    (let* ((current-dir (expand-file-name
+                         (or (when buffer-file-name
+                               (file-name-directory buffer-file-name))
+                             default-directory)))
+           (proj-name (file-name-nondirectory
+                       (directory-file-name current-dir))))
+      ;; Remove every project already in the workspace so we start clean
+      (condition-case nil
+          (let ((ws (treemacs-current-workspace)))
+            (when ws
+              (dolist (proj (copy-sequence (treemacs-workspace->projects ws)))
+                (treemacs-do-remove-project-from-workspace proj t))))
+        (error nil))
+      ;; Add only the current directory as the sole project
+      (condition-case nil
+          (treemacs-do-add-project-to-workspace current-dir proj-name)
+        (error nil))
+      ;; Open the treemacs window
+      (treemacs))))
 
 ;; --- GPTel (Chat / LLM) ---
 ;; Enhanced OpenAI integration for inline questions
@@ -985,25 +1006,13 @@ Returns the parsed JSON response or signals an error on failure."
 (add-hook 'emacs-startup-hook #'my/prune-dead-projects)
 
 (defun my/cleanup-treemacs-persist ()
-  "Nuke treemacs cache if it points at missing paths."
-  (let ((persist (expand-file-name ".cache/treemacs-persist" user-emacs-directory)))
-    (when (file-exists-p persist)
-      (with-temp-buffer
-        (insert-file-contents persist)
-        (goto-char (point-min))
-        (let (bad)
-          (while (re-search-forward "- path :: \\(.*\\)" nil t)
-            (let* ((raw (match-string 1))
-                   (path (string-trim (substitute-in-file-name raw))))
-              (unless (file-directory-p path)
-                (setq bad t))))
-          (when bad
-            (ignore-errors
-              (delete-file persist)
-              (let ((bak (concat persist "~")))
-                (when (file-exists-p bak) (delete-file bak)))))))))
-  (when (fboundp 'treemacs)
-    (ignore-errors (treemacs))))
+  "Always wipe treemacs workspace cache on startup.
+This prevents stale projects from a previous session appearing when you
+open a new directory.  F8 will rebuild the workspace for the current dir."
+  (let ((persist (expand-file-name ".cache/treemacs-persist" user-emacs-directory))
+        (bak     (expand-file-name ".cache/treemacs-persist~" user-emacs-directory)))
+    (ignore-errors (when (file-exists-p persist) (delete-file persist)))
+    (ignore-errors (when (file-exists-p bak)     (delete-file bak)))))
 (add-hook 'emacs-startup-hook #'my/cleanup-treemacs-persist)
 
 ;; Replace the whole auto-format section with this:
@@ -1108,11 +1117,13 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "  C-c l h h ...... Show documentation\n")
     (princ "  C-c l = ........ Format buffer/region\n\n")
     (princ "🗂️  Navigation & Files:\n")
-    (princ "  F8 ............. Toggle Treemacs sidebar (current directory)\n")
+    (princ "  F8 ............. Toggle Treemacs sidebar (shows CURRENT directory only)\n")
     (princ "  C-x C-f ........ Find file (enhanced with counsel)\n")
     (princ "  C-c f .......... Recent files\n")
     (princ "  C-s ............ Search in buffer (swiper)\n")
     (princ "  M-x ............ Command palette (enhanced)\n\n")
+    (princ "  Treemacs note: F8 always opens your CURRENT directory (not a stale project).\n")
+    (princ "  It wipes whatever project was open before and shows where you are now.\n\n")
     (princ "📑 Tabs & Windows:\n")
     (princ "  M-← / M-→ ...... Switch tabs\n")
     (princ "  M-Arrows ....... Switch window focus\n")
@@ -1142,16 +1153,21 @@ Returns the parsed JSON response or signals an error on failure."
     (princ "💡 Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
     (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
-    (princ "  C-h k .......... Describe key\n")
-    (princ "  C-h f .......... Describe function\n")
-    (princ "  [Wait 0.5s] .... Which-key popup for available keys\n\n")
+    (princ "  C-h k .......... Describe key (what does this key do?)\n")
+    (princ "  C-h f .......... Describe function (what does foo-bar do?)\n")
+    (princ "  C-h a .......... Apropos: search commands by KEYWORD (fuzzy via counsel)\n")
+    (princ "  M-x <term>  .... Also fuzzy-searches all commands via counsel-M-x\n")
+    (princ "  [Wait 0.3s] .... Which-key popup for available keys\n\n")
+    (princ "  Searching tip: Don't know the prefix? Use C-h a <concept> to search\n")
+    (princ "  everything at once.  e.g. C-h a project RET lists every project command.\n\n")
     (princ "✨ Quality of Life:\n")
+    (princ "  - Help windows (C-h C-h etc) auto-focus so you can scroll them\n")
     (princ "  - Modern doom-one theme with enhanced modeline\n")
     (princ "  - Git gutter shows changes in fringe\n")
     (princ "  - Line highlighting and bracket matching\n")
     (princ "  - Smart completion with ivy/counsel/swiper\n")
     (princ "  - Real terminal experience with vterm\n")
-    (princ "  - Enhanced project management\n\n")
+    (princ "  - Treemacs always opens your current dir (no stale project state)\n\n")
     (princ "Python LSP (Jedi):\n")
     (princ "  Jedi auto-detected from ~/.venv/jedi/\n")
     (princ "  Run jedi-container/setup-jedi.sh to install\n\n")
