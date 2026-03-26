@@ -306,7 +306,7 @@ Silently ignores package declarations to avoid console spam."
   :bind (("M-x" . counsel-M-x)
          ("C-x C-f" . counsel-find-file)
          ("C-c f" . counsel-recentf)
-         ("C-c g" . counsel-git-grep)
+         ("C-c G" . counsel-git-grep)
          ("C-s" . swiper)
          ;; Fuzzy search through ALL emacs commands by keyword (not just prefix)
          ("C-h a" . counsel-apropos)))
@@ -1152,7 +1152,7 @@ open a new directory.  F8 will rebuild the workspace for the current dir."
     (princ "  C-c v s ........ Show active venv\n\n")
     (princ "💡 Help & Discovery:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n")
+    (princ "  C-c h h ........ Show this cheat sheet (alternative)\n")
     (princ "  C-h k .......... Describe key (what does this key do?)\n")
     (princ "  C-h f .......... Describe function (what does foo-bar do?)\n")
     (princ "  C-h a .......... Apropos: search commands by KEYWORD (fuzzy via counsel)\n")
@@ -1176,10 +1176,10 @@ open a new directory.  F8 will rebuild the workspace for the current dir."
     (princ "  Run: npm install -g typescript-language-server typescript\n\n")
     (princ "Help:\n")
     (princ "  C-k ............ Show this cheat sheet\n")
-    (princ "  M-h M-h ........ Show this cheat sheet (alternative)\n\n")
+    (princ "  C-c h h ........ Show this cheat sheet (alternative)\n\n")
     (princ "See AUTOCOMPLETE_SETUP.md for language server setup.\n")))
 (global-set-key (kbd "C-k") #'my/show-cheatsheet)
-(global-set-key (kbd "M-h M-h") #'my/show-cheatsheet)
+(global-set-key (kbd "C-c h h") #'my/show-cheatsheet)
 
 ;; --- Additional Quality of Life Improvements ---
 ;; Add hydra for common command discovery
