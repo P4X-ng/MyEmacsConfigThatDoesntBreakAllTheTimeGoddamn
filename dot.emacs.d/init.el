@@ -333,6 +333,7 @@ Silently ignores package declarations to avoid console spam."
 
 ;; Corfu: Modern in-buffer completion popup (auto-shows while typing)
 (use-package corfu
+  :straight (:files (:defaults "extensions/*.el"))
   :custom
   (corfu-auto t)                   ; Enable auto completion
   (corfu-auto-delay 0.1)           ; Show completions faster (was 0.2s)
@@ -406,8 +407,7 @@ Silently ignores package declarations to avoid console spam."
 ;; Corfu popupinfo: Show documentation popup next to completions
 ;; corfu-popupinfo is bundled inside the corfu repo under extensions/
 (use-package corfu-popupinfo
-  :straight (:host github :repo "minad/corfu"
-             :files ("extensions/corfu-popupinfo.el"))
+  :straight nil
   :after corfu
   :hook (corfu-mode . corfu-popupinfo-mode)
   :custom
