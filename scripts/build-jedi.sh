@@ -12,6 +12,7 @@ FORCE_BUILD=false
 NO_CACHE=false
 IMAGE_NAME="reliable-jedi"
 IMAGE_TAG="latest"
+CONTAINER_VENV="/opt/jedi/venv"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -96,7 +97,7 @@ docker rm "$TEMP_CONTAINER" &> /dev/null || true
 
 # Test the build
 echo "🧪 Testing the build..."
-if docker run --rm "$IMAGE_NAME:$IMAGE_TAG" python -c "import jedi; print('Jedi version:', jedi.__version__)"; then
+if docker run --rm "$IMAGE_NAME:$IMAGE_TAG" "$CONTAINER_VENV/bin/python" -c "import jedi; print('Jedi version:', jedi.__version__)"; then
     echo "✅ Build test passed"
 else
     echo "❌ Build test failed"
